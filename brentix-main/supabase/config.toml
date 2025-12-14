@@ -1,0 +1,34 @@
+project_id = "rzjotfvudihvlzrorrqz"
+
+[functions.fetch-brent-price]
+verify_jwt = false
+
+[functions.process-trade-queue]
+verify_jwt = false
+
+[functions.send-approval-notification]
+verify_jwt = false
+
+[functions.fetch-historical-data]
+verify_jwt = false
+
+[functions.detect-patterns]
+verify_jwt = false
+
+[functions.process-conditional-orders]
+verify_jwt = false
+
+[functions.backfill-yahoo-data]
+verify_jwt = false
+
+[functions.export-price-data]
+verify_jwt = true
+
+[functions.analyze-paper-trades]
+verify_jwt = true
+
+[functions.run-rule-backtest]
+verify_jwt = true
+
+[functions.recalculate-rule-stats]
+verify_jwt = true
