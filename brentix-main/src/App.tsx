@@ -36,6 +36,14 @@ import Safety from "./pages/Safety";
 import PaperHistory from "./pages/PaperHistory";
 import NotFound from "./pages/NotFound";
 
+// Prisanalys pages
+import PrisanalysDashboard from "./pages/prisanalys/Dashboard";
+import PrisanalysHistorik from "./pages/prisanalys/Historik";
+import PrisanalysStatistik from "./pages/prisanalys/Statistik";
+import PrisanalysRegler from "./pages/prisanalys/Regler";
+import PrisanalysBacktest from "./pages/prisanalys/Backtest";
+import PrisanalysAI from "./pages/prisanalys/AI";
+
 const queryClient = new QueryClient();
 
 const App = () => (
@@ -162,6 +170,55 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <PaperHistory />
+              </ProtectedRoute>
+            }
+          />
+          {/* Prisanalys Routes */}
+          <Route
+            path="/prisanalys"
+            element={
+              <ProtectedRoute>
+                <PrisanalysDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prisanalys/historik"
+            element={
+              <ProtectedRoute>
+                <PrisanalysHistorik />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prisanalys/statistik"
+            element={
+              <ProtectedRoute>
+                <PrisanalysStatistik />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prisanalys/regler"
+            element={
+              <ProtectedRoute>
+                <PrisanalysRegler />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prisanalys/backtest"
+            element={
+              <ProtectedRoute>
+                <PrisanalysBacktest />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/prisanalys/ai"
+            element={
+              <ProtectedRoute>
+                <PrisanalysAI />
               </ProtectedRoute>
             }
           />

@@ -16,6 +16,11 @@ import {
   Scale,
   Shield,
   ClipboardList,
+  Database,
+  BarChart2,
+  TestTube,
+  Brain,
+  Activity,
 } from "lucide-react";
 import {
   Tooltip,
@@ -40,6 +45,17 @@ const SIDEBAR_SECTIONS = [
       { to: "/paper-history", icon: ClipboardList, label: "Paper Trades" },
       { to: "/safety", icon: Shield, label: "Säkerhet" },
       { to: "/pairs", icon: Scale, label: "BULL/BEAR" },
+    ],
+  },
+  {
+    title: "PRISANALYS",
+    items: [
+      { to: "/prisanalys", icon: Activity, label: "Dashboard" },
+      { to: "/prisanalys/historik", icon: Database, label: "Historik" },
+      { to: "/prisanalys/statistik", icon: BarChart2, label: "Statistik" },
+      { to: "/prisanalys/regler", icon: Zap, label: "Regler" },
+      { to: "/prisanalys/backtest", icon: TestTube, label: "Backtest" },
+      { to: "/prisanalys/ai", icon: Brain, label: "AI-Förslag" },
     ],
   },
   {
