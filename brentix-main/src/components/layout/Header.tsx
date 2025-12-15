@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { TrendingUp, TrendingDown, LogOut, RefreshCw, Shield, Sun, Moon, Fuel, ChevronDown, User, Settings2, AlertTriangle } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "next-themes";
@@ -27,6 +28,7 @@ import { NotificationBell } from "@/components/NotificationBell";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { useStorageStatus } from "@/hooks/useStorageStatus";
 import { MobileMenuButton } from "./MobileDrawer";
+import { LanguageSelector } from "@/components/LanguageSelector";
 
 interface HeaderProps {
   currentPrice: number;
@@ -63,6 +65,7 @@ export function Header({
   const { settings, updateSettings } = useUserSettings();
   const isPaperTrading = settings?.paper_trading_enabled ?? true;
   const { status: storageStatus } = useStorageStatus();
+  const { t } = useTranslation();
 
   useEffect(() => {
     setMounted(true);
@@ -220,17 +223,17 @@ export function Header({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end" className="bg-popover border-border">
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => handleTradingModeChange("paper")}
                 className={cn(isPaperTrading && "bg-primary/10")}
               >
-                📝 Paper Trading
+                📝 {t('trading.paperTrading')}
               </DropdownMenuItem>
-              <DropdownMenuItem 
+              <DropdownMenuItem
                 onClick={() => handleTradingModeChange("live")}
                 className={cn(!isPaperTrading && "bg-primary/10")}
               >
-                💰 Live Trading
+                💰 {t('trading.liveTrading')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -288,6 +291,9 @@ export function Header({
           {/* Notification Bell */}
           <NotificationBell />
 
+          {/* Language Selector */}
+          <LanguageSelector />
+
           {/* Theme Toggle */}
           {mounted && (
             <Button
@@ -321,12 +327,12 @@ export function Header({
               )}
               <DropdownMenuItem onClick={() => navigate("/settings")} className="gap-2">
                 <User className="h-4 w-4" />
-                Inställningar
+                {t('nav.settings')}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout} className="gap-2 text-destructive">
                 <LogOut className="h-4 w-4" />
-                Logga ut
+                {t('nav.logout')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
