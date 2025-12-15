@@ -1,2 +1,6 @@
 .env*
 BRENTIX_MASTERSCRIPT*.md
+node_modules/
+*.zip
+*.csv
+*.swp
