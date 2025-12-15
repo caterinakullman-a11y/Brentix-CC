@@ -2,15 +2,29 @@ import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 
+interface RuleCondition {
+  type: string;
+  operator?: string;
+  value?: number;
+  min_percent?: number;
+  direction?: string;
+  condition?: string;
+  startHour?: number;
+  start_hour?: number;
+  endHour?: number;
+  end_hour?: number;
+  days?: number[];
+}
+
 interface TradingRule {
   id: string;
   name: string;
   rule_type: string;
-  conditions: any[];
+  conditions: RuleCondition[];
   logic_operator: string;
   stop_loss_percent: number | null;
   take_profit_percent: number | null;
-  action_config: any;
+  action_config: Record<string, unknown>;
 }
 
 interface Trade {
@@ -105,7 +119,7 @@ function calculateMACD(
 
 // Evaluate a condition
 function evaluateCondition(
-  condition: any,
+  condition: RuleCondition,
   prices: { date: string; price: number }[],
   index: number
 ): boolean {

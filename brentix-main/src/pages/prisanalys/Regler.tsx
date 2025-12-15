@@ -345,7 +345,24 @@ const PrisanalysRegler = () => {
     }
   };
 
-  const handleEditRule = (rule: any) => {
+  const handleEditRule = (rule: {
+    id: string;
+    name: string;
+    description?: string | null;
+    rule_type: "BUY" | "SELL";
+    logic_operator: "AND" | "OR";
+    stop_loss_percent?: number | null;
+    take_profit_percent?: number | null;
+    conditions?: {
+      type: string;
+      operator?: string;
+      value?: number;
+      value2?: number;
+      days?: number[];
+      start_hour?: number;
+      end_hour?: number;
+    }[];
+  }) => {
     setEditingRule(rule.id);
     setRuleName(rule.name);
     setRuleDescription(rule.description ?? "");
@@ -355,7 +372,7 @@ const PrisanalysRegler = () => {
     setTakeProfit(rule.take_profit_percent ?? 3);
 
     // Parse conditions
-    const parsedConditions = (rule.conditions ?? []).map((c: any) => ({
+    const parsedConditions = (rule.conditions ?? []).map((c) => ({
       id: crypto.randomUUID(),
       type: c.type,
       operator: c.operator,
@@ -600,7 +617,7 @@ const PrisanalysRegler = () => {
                         </p>
                       )}
                       <div className="flex flex-wrap gap-2 mb-3">
-                        {(rule.conditions as any[])?.map((c, i) => (
+                        {(rule.conditions as { type: string }[])?.map((c, i) => (
                           <Badge key={i} variant="secondary" className="text-xs">
                             {conditionTypes.find((t) => t.value === c.type)?.label ?? c.type}
                           </Badge>

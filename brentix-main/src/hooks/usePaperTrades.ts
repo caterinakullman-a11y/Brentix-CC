@@ -78,18 +78,12 @@ export function usePaperTrades() {
       const price = exitPrice ?? currentPrice ?? trade.entry_price;
       
       // Calculate P/L based on direction
-      let profitLossSek: number;
-      let profitLossPercent: number;
-      
-      if (trade.direction === "BUY" || trade.instrument_type === "BULL") {
-        // Long position: profit when price goes up
-        profitLossPercent = ((price - trade.entry_price) / trade.entry_price) * 100;
-      } else {
-        // Short position (BEAR): profit when price goes down
-        profitLossPercent = ((trade.entry_price - price) / trade.entry_price) * 100;
-      }
-      
-      profitLossSek = (trade.position_value_sek * profitLossPercent) / 100;
+      const isLongPosition = trade.direction === "BUY" || trade.instrument_type === "BULL";
+      const profitLossPercent = isLongPosition
+        ? ((price - trade.entry_price) / trade.entry_price) * 100
+        : ((trade.entry_price - price) / trade.entry_price) * 100;
+
+      const profitLossSek = (trade.position_value_sek * profitLossPercent) / 100;
 
       // Update the trade
       const { error: updateError } = await supabase

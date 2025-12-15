@@ -1,3 +1,4 @@
+import { lazy, Suspense } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -10,39 +11,54 @@ import ErrorBoundary from "@/components/ErrorBoundary";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { HelpChat } from "@/components/help";
 import { useAuth } from "@/hooks/useAuth";
+import { Skeleton } from "@/components/ui/skeleton";
+
+// Page loading fallback
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="space-y-4 w-full max-w-md p-8">
+      <Skeleton className="h-8 w-3/4" />
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-5/6" />
+      <Skeleton className="h-32 w-full" />
+    </div>
+  </div>
+);
 
 // Wrapper to conditionally show HelpChat only for logged-in users
 const AuthenticatedHelpChat = () => {
   const { user } = useAuth();
   return user ? <HelpChat /> : null;
 };
-import Index from "./pages/Index";
-import Login from "./pages/Login";
-import Register from "./pages/Register";
-import ResetPassword from "./pages/ResetPassword";
-import PendingApproval from "./pages/PendingApproval";
-import Admin from "./pages/Admin";
-import Signals from "./pages/Signals";
-import Trades from "./pages/Trades";
-import History from "./pages/History";
-import HistoricalData from "./pages/HistoricalData";
-import Analysis from "./pages/Analysis";
-import Performance from "./pages/Performance";
-import Reports from "./pages/Reports";
-import Settings from "./pages/Settings";
-import Rules from "./pages/Rules";
-import Pairs from "./pages/Pairs";
-import Safety from "./pages/Safety";
-import PaperHistory from "./pages/PaperHistory";
-import NotFound from "./pages/NotFound";
 
-// Prisanalys pages
-import PrisanalysDashboard from "./pages/prisanalys/Dashboard";
-import PrisanalysHistorik from "./pages/prisanalys/Historik";
-import PrisanalysStatistik from "./pages/prisanalys/Statistik";
-import PrisanalysRegler from "./pages/prisanalys/Regler";
-import PrisanalysBacktest from "./pages/prisanalys/Backtest";
-import PrisanalysAI from "./pages/prisanalys/AI";
+// Lazy load pages for code splitting
+const Index = lazy(() => import("./pages/Index"));
+const Login = lazy(() => import("./pages/Login"));
+const Register = lazy(() => import("./pages/Register"));
+const ResetPassword = lazy(() => import("./pages/ResetPassword"));
+const PendingApproval = lazy(() => import("./pages/PendingApproval"));
+const Admin = lazy(() => import("./pages/Admin"));
+const Signals = lazy(() => import("./pages/Signals"));
+const Trades = lazy(() => import("./pages/Trades"));
+const History = lazy(() => import("./pages/History"));
+const HistoricalData = lazy(() => import("./pages/HistoricalData"));
+const Analysis = lazy(() => import("./pages/Analysis"));
+const Performance = lazy(() => import("./pages/Performance"));
+const Reports = lazy(() => import("./pages/Reports"));
+const Settings = lazy(() => import("./pages/Settings"));
+const Rules = lazy(() => import("./pages/Rules"));
+const Pairs = lazy(() => import("./pages/Pairs"));
+const Safety = lazy(() => import("./pages/Safety"));
+const PaperHistory = lazy(() => import("./pages/PaperHistory"));
+const NotFound = lazy(() => import("./pages/NotFound"));
+
+// Prisanalys pages (lazy loaded)
+const PrisanalysDashboard = lazy(() => import("./pages/prisanalys/Dashboard"));
+const PrisanalysHistorik = lazy(() => import("./pages/prisanalys/Historik"));
+const PrisanalysStatistik = lazy(() => import("./pages/prisanalys/Statistik"));
+const PrisanalysRegler = lazy(() => import("./pages/prisanalys/Regler"));
+const PrisanalysBacktest = lazy(() => import("./pages/prisanalys/Backtest"));
+const PrisanalysAI = lazy(() => import("./pages/prisanalys/AI"));
 
 const queryClient = new QueryClient();
 
@@ -56,6 +72,7 @@ const App = () => (
           <Toaster />
           <Sonner />
         <BrowserRouter>
+        <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<Register />} />
@@ -224,6 +241,7 @@ const App = () => (
           />
           <Route path="*" element={<NotFound />} />
         </Routes>
+        </Suspense>
         </BrowserRouter>
         <AuthenticatedHelpChat />
         </TooltipProvider>

@@ -272,7 +272,7 @@ export function useTradeRuleTracking() {
     }: {
       tradeId: string;
       tradeType: "paper" | "live";
-      activeRules: { id: string; name: string; conditions: any }[];
+      activeRules: { id: string; name: string; conditions: Record<string, unknown> }[];
       triggeredRuleIds?: string[];
     }) => {
       const { error } = await supabase

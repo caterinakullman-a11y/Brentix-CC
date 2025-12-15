@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { 
@@ -30,6 +30,12 @@ export function ConditionalOrdersList() {
   const { isEnabled: pushEnabled, sendNotification } = usePushNotifications();
   const { settings } = useUserSettings();
 
+  // Store latest values in refs to avoid recreating subscription
+  const notificationRef = useRef({ pushEnabled, sendNotification, settings });
+  useEffect(() => {
+    notificationRef.current = { pushEnabled, sendNotification, settings };
+  }, [pushEnabled, sendNotification, settings]);
+
   // Real-time subscription for order updates
   useEffect(() => {
     const channel = supabase
@@ -44,26 +50,27 @@ export function ConditionalOrdersList() {
         (payload) => {
           console.log("Conditional order update:", payload);
           queryClient.invalidateQueries({ queryKey: ["conditional-orders"] });
-          
+
           if (payload.eventType === "UPDATE") {
             const newOrder = payload.new as ConditionalOrder & { peak_price?: number; trough_price?: number };
             const newStatus = newOrder.status;
-            
+            const { pushEnabled: isPushEnabled, sendNotification: notify, settings: currentSettings } = notificationRef.current;
+
             if (newStatus === "TRIGGERED") {
               toast.info("Order triggad!", { description: "En villkorlig order har triggats" });
-              
+
               // Send push notification if enabled
-              if (pushEnabled && settings?.notify_trade_executed && settings?.enable_push_notifications) {
-                sendNotification("Order Triggad! 🎯", {
+              if (isPushEnabled && currentSettings?.notify_trade_executed && currentSettings?.enable_push_notifications) {
+                notify("Order Triggad! 🎯", {
                   body: `Din ${newOrder.order_type} ${newOrder.direction}-order har triggats`,
                   tag: `order-${newOrder.id}`,
                 });
               }
             } else if (newStatus === "EXECUTED") {
               toast.success("Order exekverad!", { description: "En villkorlig order har exekverats" });
-              
-              if (pushEnabled && settings?.notify_trade_executed && settings?.enable_push_notifications) {
-                sendNotification("Order Exekverad! ✅", {
+
+              if (isPushEnabled && currentSettings?.notify_trade_executed && currentSettings?.enable_push_notifications) {
+                notify("Order Exekverad! ✅", {
                   body: `Din ${newOrder.order_type} ${newOrder.direction}-order har exekverats`,
                   tag: `order-${newOrder.id}`,
                 });

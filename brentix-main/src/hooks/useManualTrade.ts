@@ -190,7 +190,7 @@ export function useManualTrade() {
           amount_sek: amountSEK,
           notes,
         },
-      } as any)
+      } as Record<string, unknown>)
       .select()
       .single();
 

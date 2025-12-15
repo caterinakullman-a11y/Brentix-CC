@@ -155,7 +155,7 @@ const PrisanalysBacktest = () => {
                   <Badge variant={selectedRule.rule_type === "BUY" ? "default" : "destructive"}>
                     {selectedRule.rule_type}
                   </Badge>
-                  {(selectedRule.conditions as any[])?.map((c, i) => (
+                  {(selectedRule.conditions as { type: string }[])?.map((c, i) => (
                     <Badge key={i} variant="secondary" className="text-xs">
                       {c.type}
                     </Badge>

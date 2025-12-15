@@ -67,7 +67,7 @@ export function useStorageStatus() {
         description: `${status.usedPercent.toFixed(1)}% av lagringsutrymmet används. Överväg att exportera och rensa data.`,
       });
     }
-  }, [status?.isWarning, status?.isCritical, status?.usedPercent, toast]);
+  }, [status, toast]);
 
   // Update storage limit
   const updateLimit = useMutation({

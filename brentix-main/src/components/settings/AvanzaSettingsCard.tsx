@@ -56,11 +56,11 @@ export function AvanzaSettingsCard({
           variant: "destructive",
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       setBackendConfigured(false);
       toast({
         title: "Connection Failed",
-        description: error.message || "Could not reach the backend service.",
+        description: error instanceof Error ? error.message : "Could not reach the backend service.",
         variant: "destructive",
       });
     } finally {
