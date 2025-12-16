@@ -24,3 +24,8 @@ dist-ssr
 *.sw?
 .env
 supabase/.temp/
+
+# Data files (keep folder structure but ignore large data)
+data/*.csv
+data/*.json
+!data/.gitkeep
