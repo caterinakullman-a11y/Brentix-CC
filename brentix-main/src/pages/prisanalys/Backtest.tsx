@@ -40,7 +40,7 @@ import {
 } from "recharts";
 
 const PrisanalysBacktest = () => {
-  const { rules, isLoading: rulesLoading } = useTradingRules();
+  const { data: rules = [], isLoading: rulesLoading } = useTradingRules();
   const { runBacktest, isRunning, results, progress } = useBacktest();
 
   const [selectedRuleId, setSelectedRuleId] = useState<string>("");

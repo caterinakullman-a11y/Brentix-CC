@@ -22,7 +22,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { useTradingRules } from "@/hooks/useTradingRules";
+import { useTradingRules, useCreateRule, useUpdateRule, useDeleteRule, useToggleRule } from "@/hooks/useTradingRules";
 import {
   Plus,
   Zap,
@@ -259,7 +259,11 @@ const ConditionEditor = ({
 };
 
 const PrisanalysRegler = () => {
-  const { rules, isLoading, createRule, updateRule, deleteRule, toggleRule } = useTradingRules();
+  const { data: rules = [], isLoading } = useTradingRules();
+  const createRuleMutation = useCreateRule();
+  const updateRuleMutation = useUpdateRule();
+  const deleteRuleMutation = useDeleteRule();
+  const toggleRuleMutation = useToggleRule();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<string | null>(null);
 
@@ -331,10 +335,10 @@ const PrisanalysRegler = () => {
       };
 
       if (editingRule) {
-        await updateRule({ id: editingRule, ...ruleData });
+        await updateRuleMutation.mutateAsync({ id: editingRule, ...ruleData });
         toast.success("Regel uppdaterad");
       } else {
-        await createRule(ruleData);
+        await createRuleMutation.mutateAsync(ruleData);
         toast.success("Regel skapad");
       }
 
@@ -389,7 +393,7 @@ const PrisanalysRegler = () => {
   const handleDeleteRule = async (id: string) => {
     if (confirm("Är du säker på att du vill ta bort denna regel?")) {
       try {
-        await deleteRule(id);
+        await deleteRuleMutation.mutateAsync(id);
         toast.success("Regel borttagen");
       } catch (error) {
         toast.error("Kunde inte ta bort regeln");
@@ -635,7 +639,7 @@ const PrisanalysRegler = () => {
                     <div className="flex items-center gap-2">
                       <Switch
                         checked={rule.is_active}
-                        onCheckedChange={() => toggleRule(rule.id)}
+                        onCheckedChange={() => toggleRuleMutation.mutate({ id: rule.id, is_active: !rule.is_active })}
                       />
                       <Button
                         variant="ghost"
