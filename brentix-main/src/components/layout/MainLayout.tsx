@@ -1,9 +1,10 @@
-import { ReactNode, useState, useEffect } from "react";
+import { ReactNode, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Header } from "./Header";
 import { Breadcrumbs } from "./Breadcrumbs";
 import { MobileDrawer } from "./MobileDrawer";
 import { MobileBottomNav } from "./MobileBottomNav";
+import { usePriceData } from "@/hooks/usePriceData";
 
 interface MainLayoutProps {
   children: ReactNode;
@@ -12,35 +13,14 @@ interface MainLayoutProps {
 }
 
 export function MainLayout({ children, onToggleLayoutMode, isLayoutMode }: MainLayoutProps) {
-  const [priceData, setPriceData] = useState({
-    currentPrice: 75.48,
-    priceChange: 0.28,
-    priceChangePercent: 0.37,
-    lastUpdated: "Just now",
-  });
+  // Fetch real price data from database
+  const { currentPrice, change24h, changePercent24h, isLoading } = usePriceData();
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
     const saved = localStorage.getItem("brentix-sidebar-collapsed");
     return saved === "true";
   });
-
-  // Simulate real-time price updates
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const change = (Math.random() - 0.5) * 0.2;
-      setPriceData((prev) => {
-        const newPrice = prev.currentPrice + change;
-        return {
-          currentPrice: Math.round(newPrice * 100) / 100,
-          priceChange: Math.round(change * 100) / 100,
-          priceChangePercent: Math.round((change / prev.currentPrice) * 100 * 100) / 100,
-          lastUpdated: "Just now",
-        };
-      });
-    }, 5000);
-
-    return () => clearInterval(interval);
-  }, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -54,8 +34,11 @@ export function MainLayout({ children, onToggleLayoutMode, isLayoutMode }: MainL
 
       {/* Main Content - Dynamic padding based on sidebar state */}
       <div className={`transition-all duration-300 ${sidebarCollapsed ? 'md:pl-16' : 'md:pl-64'}`}>
-        <Header 
-          {...priceData} 
+        <Header
+          currentPrice={currentPrice}
+          priceChange={change24h}
+          priceChangePercent={changePercent24h}
+          lastUpdated={isLoading ? "Laddar..." : "Live"}
           onMenuClick={() => setMobileMenuOpen(true)}
           onToggleLayoutMode={onToggleLayoutMode}
           isLayoutMode={isLayoutMode}
