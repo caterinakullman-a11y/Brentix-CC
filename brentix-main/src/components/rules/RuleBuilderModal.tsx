@@ -17,7 +17,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Plus, Trash2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Plus, Trash2, RefreshCw } from "lucide-react";
 import {
   TradingRule,
   RuleCondition,
@@ -25,12 +26,18 @@ import {
   useCreateRule,
   useUpdateRule,
 } from "@/hooks/useTradingRules";
+import { RecycleXBuilderForm } from "@/components/recyclex/RecycleXBuilderForm";
+import type { RecycleXRule } from "@/types/recyclex";
 import { toast } from "sonner";
+
+type RuleCategory = "ifthen" | "recyclex-bull" | "recyclex-bear";
 
 interface RuleBuilderModalProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   editRule?: TradingRule | null;
+  editRecycleXRule?: RecycleXRule | null;
+  defaultTab?: RuleCategory;
 }
 
 const defaultCondition: RuleCondition = {
@@ -44,10 +51,13 @@ export function RuleBuilderModal({
   open,
   onOpenChange,
   editRule,
+  editRecycleXRule,
+  defaultTab = "ifthen",
 }: RuleBuilderModalProps) {
   const createRule = useCreateRule();
   const updateRule = useUpdateRule();
 
+  const [activeTab, setActiveTab] = useState<RuleCategory>(defaultTab);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [ruleType, setRuleType] = useState<"BUY" | "SELL" | "BOTH">("BUY");
@@ -61,6 +71,7 @@ export function RuleBuilderModal({
 
   useEffect(() => {
     if (editRule) {
+      setActiveTab("ifthen");
       setName(editRule.name);
       setDescription(editRule.description || "");
       setRuleType(editRule.rule_type);
@@ -71,10 +82,13 @@ export function RuleBuilderModal({
       setStopLoss(editRule.stop_loss_percent ?? undefined);
       setTakeProfit(editRule.take_profit_percent ?? undefined);
       setTrailingStop(editRule.trailing_stop);
+    } else if (editRecycleXRule) {
+      setActiveTab(editRecycleXRule.type === "BULL" ? "recyclex-bull" : "recyclex-bear");
     } else {
+      setActiveTab(defaultTab);
       resetForm();
     }
-  }, [editRule, open]);
+  }, [editRule, editRecycleXRule, open, defaultTab]);
 
   const resetForm = () => {
     setName("");
@@ -144,38 +158,63 @@ export function RuleBuilderModal({
     }
   };
 
+  const getDialogTitle = () => {
+    if (editRule) return "Redigera IF-THEN regel";
+    if (editRecycleXRule) return `Redigera RecycleX ${editRecycleXRule.type}`;
+    return "Ny handelsregel";
+  };
+
+  const handleClose = () => {
+    onOpenChange(false);
+  };
+
+  // Determine if we should show tabs (not when editing)
+  const showTabs = !editRule && !editRecycleXRule;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {editRule ? "Redigera regel" : "Ny handelsregel"}
-          </DialogTitle>
+          <DialogTitle>{getDialogTitle()}</DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-6 py-4">
-          {/* Name and Description */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="name">Namn</Label>
-              <Input
-                id="name"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="Min handelsregel"
-              />
-            </div>
-            <div>
-              <Label htmlFor="description">Beskrivning (valfritt)</Label>
-              <Textarea
-                id="description"
-                value={description}
-                onChange={(e) => setDescription(e.target.value)}
-                placeholder="Beskriv vad regeln gör..."
-                rows={2}
-              />
-            </div>
-          </div>
+        {showTabs ? (
+          <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as RuleCategory)} className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="ifthen">IF-THEN</TabsTrigger>
+              <TabsTrigger value="recyclex-bull" className="flex items-center gap-1">
+                <RefreshCw className="h-3 w-3" />
+                Bull
+              </TabsTrigger>
+              <TabsTrigger value="recyclex-bear" className="flex items-center gap-1">
+                <RefreshCw className="h-3 w-3" />
+                Bear
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="ifthen" className="space-y-6 py-4">
+              {/* IF-THEN Form Content */}
+              <div className="space-y-4">
+                <div>
+                  <Label htmlFor="name">Namn</Label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Min handelsregel"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="description">Beskrivning (valfritt)</Label>
+                  <Textarea
+                    id="description"
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    placeholder="Beskriv vad regeln gör..."
+                    rows={2}
+                  />
+                </div>
+              </div>
 
           {/* Conditions */}
           <div className="space-y-3">
@@ -411,19 +450,246 @@ export function RuleBuilderModal({
               </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Avbryt
-          </Button>
-          <Button
-            onClick={handleSave}
-            disabled={createRule.isPending || updateRule.isPending}
-          >
-            {editRule ? "Uppdatera" : "Spara"}
-          </Button>
-        </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleClose}>
+                  Avbryt
+                </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={createRule.isPending || updateRule.isPending}
+                >
+                  Spara
+                </Button>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="recyclex-bull">
+              <RecycleXBuilderForm type="BULL" onClose={handleClose} />
+            </TabsContent>
+
+            <TabsContent value="recyclex-bear">
+              <RecycleXBuilderForm type="BEAR" onClose={handleClose} />
+            </TabsContent>
+          </Tabs>
+        ) : editRule ? (
+          /* Edit IF-THEN rule mode */
+          <div className="space-y-6 py-4">
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="name">Namn</Label>
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Min handelsregel"
+                />
+              </div>
+              <div>
+                <Label htmlFor="description">Beskrivning (valfritt)</Label>
+                <Textarea
+                  id="description"
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  placeholder="Beskriv vad regeln gör..."
+                  rows={2}
+                />
+              </div>
+            </div>
+
+            {/* Conditions for edit mode */}
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-semibold">OM:</Label>
+                <Button variant="outline" size="sm" onClick={addCondition}>
+                  <Plus className="h-4 w-4 mr-1" /> Lägg till villkor
+                </Button>
+              </div>
+
+              {conditions.map((condition, index) => (
+                <div key={index} className="space-y-2">
+                  {index > 0 && (
+                    <Select
+                      value={logicOperator}
+                      onValueChange={(v) => setLogicOperator(v as "AND" | "OR")}
+                    >
+                      <SelectTrigger className="w-24">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="AND">OCH</SelectItem>
+                        <SelectItem value="OR">ELLER</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  )}
+
+                  <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg flex-wrap">
+                    <Select
+                      value={condition.type}
+                      onValueChange={(v) =>
+                        updateCondition(index, { type: v as RuleCondition["type"] })
+                      }
+                    >
+                      <SelectTrigger className="w-32">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="price_change">Pris</SelectItem>
+                        <SelectItem value="rsi">RSI</SelectItem>
+                        <SelectItem value="macd">MACD</SelectItem>
+                      </SelectContent>
+                    </Select>
+
+                    {condition.type === "price_change" && (
+                      <>
+                        <Select
+                          value={condition.direction}
+                          onValueChange={(v) =>
+                            updateCondition(index, { direction: v as "up" | "down" | "any" })
+                          }
+                        >
+                          <SelectTrigger className="w-28">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="up">stiger</SelectItem>
+                            <SelectItem value="down">faller</SelectItem>
+                            <SelectItem value="any">ändras</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <span className="text-muted-foreground">{">"}</span>
+                        <Input
+                          type="number"
+                          step="0.1"
+                          className="w-20"
+                          value={condition.min_percent || ""}
+                          onChange={(e) =>
+                            updateCondition(index, {
+                              min_percent: parseFloat(e.target.value) || 0,
+                            })
+                          }
+                        />
+                        <span className="text-muted-foreground">%</span>
+                      </>
+                    )}
+
+                    {conditions.length > 1 && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-destructive"
+                        onClick={() => removeCondition(index)}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Action */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">DÅ:</Label>
+              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+                <Select
+                  value={ruleType}
+                  onValueChange={(v) => setRuleType(v as "BUY" | "SELL" | "BOTH")}
+                >
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BUY">KÖP</SelectItem>
+                    <SelectItem value="SELL">SÄLJ</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <Select
+                  value={instrument}
+                  onValueChange={(v) => setInstrument(v as "BULL" | "BEAR")}
+                >
+                  <SelectTrigger className="w-24">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="BULL">BULL</SelectItem>
+                    <SelectItem value="BEAR">BEAR</SelectItem>
+                  </SelectContent>
+                </Select>
+
+                <span className="text-muted-foreground">för</span>
+                <Input
+                  type="number"
+                  className="w-24"
+                  value={amount}
+                  onChange={(e) => setAmount(parseInt(e.target.value) || 0)}
+                />
+                <span className="text-muted-foreground">SEK</span>
+              </div>
+            </div>
+
+            {/* Risk Management */}
+            <div className="space-y-3">
+              <Label className="text-base font-semibold">Riskhantering:</Label>
+              <div className="grid grid-cols-2 gap-4 p-3 bg-muted/50 rounded-lg">
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap">Stop-loss:</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    className="w-20"
+                    value={stopLoss || ""}
+                    onChange={(e) =>
+                      setStopLoss(parseFloat(e.target.value) || undefined)
+                    }
+                  />
+                  <span className="text-muted-foreground">%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="whitespace-nowrap">Take-profit:</Label>
+                  <Input
+                    type="number"
+                    step="0.5"
+                    className="w-20"
+                    value={takeProfit || ""}
+                    onChange={(e) =>
+                      setTakeProfit(parseFloat(e.target.value) || undefined)
+                    }
+                  />
+                  <span className="text-muted-foreground">%</span>
+                </div>
+                <div className="col-span-2 flex items-center gap-2">
+                  <Switch
+                    checked={trailingStop}
+                    onCheckedChange={setTrailingStop}
+                    id="trailing-stop-edit"
+                  />
+                  <Label htmlFor="trailing-stop-edit">Trailing stop</Label>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={handleClose}>
+                Avbryt
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={createRule.isPending || updateRule.isPending}
+              >
+                Uppdatera
+              </Button>
+            </div>
+          </div>
+        ) : editRecycleXRule ? (
+          /* Edit RecycleX rule mode */
+          <RecycleXBuilderForm
+            type={editRecycleXRule.type}
+            editRule={editRecycleXRule}
+            onClose={handleClose}
+          />
+        ) : null}
       </DialogContent>
     </Dialog>
   );

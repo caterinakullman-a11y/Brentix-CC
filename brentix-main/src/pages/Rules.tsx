@@ -6,17 +6,27 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Plus, Sparkles, AlertCircle, Loader2, BarChart3, List } from "lucide-react";
 import { useTradingRules, TradingRule } from "@/hooks/useTradingRules";
+import { useRecycleXRules, useRecycleXSuggestions } from "@/hooks/useRecycleX";
 import { useAddPredefinedRules } from "@/hooks/useBacktest";
 import { RuleCard } from "@/components/rules/RuleCard";
+import { RecycleXRuleCard } from "@/components/recyclex/RecycleXRuleCard";
 import { RuleBuilderModal } from "@/components/rules/RuleBuilderModal";
 import { RuleAnalysisPanel } from "@/components/rules/RuleAnalysisPanel";
+import type { RecycleXRule } from "@/types/recyclex";
 import { toast } from "sonner";
 
 export default function Rules() {
-  const { data: rules, isLoading, error } = useTradingRules();
+  const { data: tradingRules, isLoading: isLoadingTrading, error: tradingError } = useTradingRules();
+  const { data: recycleXRules, isLoading: isLoadingRecycleX, error: recycleXError } = useRecycleXRules();
+  const { data: suggestions } = useRecycleXSuggestions();
   const addPredefinedRules = useAddPredefinedRules();
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingRule, setEditingRule] = useState<TradingRule | null>(null);
+  const [editingRecycleXRule, setEditingRecycleXRule] = useState<RecycleXRule | null>(null);
+
+  const isLoading = isLoadingTrading || isLoadingRecycleX;
+  const error = tradingError || recycleXError;
 
   const handleAddPredefined = async () => {
     try {
@@ -29,6 +39,13 @@ export default function Rules() {
 
   const handleEdit = (rule: TradingRule) => {
     setEditingRule(rule);
+    setEditingRecycleXRule(null);
+    setIsModalOpen(true);
+  };
+
+  const handleEditRecycleX = (rule: RecycleXRule) => {
+    setEditingRecycleXRule(rule);
+    setEditingRule(null);
     setIsModalOpen(true);
   };
 
@@ -36,11 +53,28 @@ export default function Rules() {
     setIsModalOpen(open);
     if (!open) {
       setEditingRule(null);
+      setEditingRecycleXRule(null);
     }
   };
 
-  const activeRules = rules?.filter((r) => r.is_active) || [];
-  const inactiveRules = rules?.filter((r) => !r.is_active) || [];
+  // Separate trading rules by active status
+  const activeTrading = tradingRules?.filter((r) => r.is_active) || [];
+  const inactiveTrading = tradingRules?.filter((r) => !r.is_active) || [];
+
+  // Separate RecycleX rules by status
+  const activeRecycleX = recycleXRules?.filter((r) =>
+    r.status === 'ACTIVE' || r.status === 'WAITING'
+  ) || [];
+  const inactiveRecycleX = recycleXRules?.filter((r) =>
+    r.status === 'INACTIVE' || r.status === 'PAUSED' || r.status === 'STOPPED' || r.status === 'COMPLETED'
+  ) || [];
+
+  const totalActive = activeTrading.length + activeRecycleX.length;
+  const totalInactive = inactiveTrading.length + inactiveRecycleX.length;
+  const totalRules = (tradingRules?.length || 0) + (recycleXRules?.length || 0);
+
+  // Pending suggestions count
+  const pendingSuggestions = suggestions?.filter(s => !s.dismissed) || [];
 
   return (
     <MainLayout>
@@ -55,7 +89,7 @@ export default function Rules() {
           <div>
             <h1 className="text-2xl font-bold text-foreground">Handelsregler</h1>
             <p className="text-muted-foreground text-sm">
-              Skapa IF-THEN regler för automatiserad handel
+              Skapa IF-THEN regler eller RecycleX-strategier för automatiserad handel
             </p>
           </div>
           <div className="flex gap-2">
@@ -109,41 +143,57 @@ export default function Rules() {
               </div>
             )}
 
+            {/* Pending Suggestions Banner */}
+            {pendingSuggestions.length > 0 && (
+              <div className="p-4 bg-primary/10 border border-primary/20 rounded-lg">
+                <p className="text-sm text-primary">
+                  Du har {pendingSuggestions.length} förslag på RecycleX-regler.
+                  Klicka "Ny regel" och välj RecycleX för att se dem.
+                </p>
+              </div>
+            )}
+
             {/* Rules List */}
             {!isLoading && !error && (
               <div className="space-y-6">
                 {/* Active Rules */}
-                {activeRules.length > 0 && (
+                {totalActive > 0 && (
                   <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-[#5B9A6F]" />
-                      Aktiva regler ({activeRules.length})
+                      Aktiva regler ({totalActive})
                     </h2>
                     <div className="space-y-3">
-                      {activeRules.map((rule) => (
+                      {activeTrading.map((rule) => (
                         <RuleCard key={rule.id} rule={rule} onEdit={handleEdit} />
+                      ))}
+                      {activeRecycleX.map((rule) => (
+                        <RecycleXRuleCard key={rule.id} rule={rule} onEdit={handleEditRecycleX} />
                       ))}
                     </div>
                   </div>
                 )}
 
                 {/* Inactive Rules */}
-                {inactiveRules.length > 0 && (
+                {totalInactive > 0 && (
                   <div className="space-y-3">
                     <h2 className="text-sm font-medium text-muted-foreground flex items-center gap-2">
                       <span className="h-2 w-2 rounded-full bg-muted-foreground" />
-                      Pausade regler ({inactiveRules.length})
+                      Pausade/Inaktiva regler ({totalInactive})
                     </h2>
                     <div className="space-y-3">
-                      {inactiveRules.map((rule) => (
+                      {inactiveTrading.map((rule) => (
                         <RuleCard key={rule.id} rule={rule} onEdit={handleEdit} />
+                      ))}
+                      {inactiveRecycleX.map((rule) => (
+                        <RecycleXRuleCard key={rule.id} rule={rule} onEdit={handleEditRecycleX} />
                       ))}
                     </div>
                   </div>
                 )}
 
                 {/* Empty State */}
-                {rules?.length === 0 && (
+                {totalRules === 0 && (
                   <div className="text-center py-12">
                     <Sparkles className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <h3 className="text-lg font-medium text-foreground mb-2">
@@ -172,6 +222,7 @@ export default function Rules() {
           open={isModalOpen}
           onOpenChange={handleCloseModal}
           editRule={editingRule}
+          editRecycleXRule={editingRecycleXRule}
         />
       </div>
     </MainLayout>
