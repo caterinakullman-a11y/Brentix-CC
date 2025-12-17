@@ -77,7 +77,7 @@ function getTimeRangeFromPreset(preset: TimePreset): { from: Date; to: Date } {
 
 function ChartSkeleton() {
   return (
-    <div className="h-[300px] flex items-center justify-center">
+    <div className="h-[600px] flex items-center justify-center">
       <div className="space-y-3 w-full">
         <Skeleton className="h-4 w-3/4 mx-auto" />
         <Skeleton className="h-[250px] w-full" />
@@ -88,7 +88,7 @@ function ChartSkeleton() {
 
 function ChartEmpty() {
   return (
-    <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
+    <div className="h-[600px] flex flex-col items-center justify-center text-muted-foreground">
       <AlertCircle className="h-12 w-12 mb-4 opacity-50" />
       <p className="text-lg font-medium">Ingen prisdata tillgänglig</p>
       <p className="text-sm">Väntar på datainsamling...</p>
@@ -98,7 +98,7 @@ function ChartEmpty() {
 
 function ChartError({ onRetry }: { onRetry: () => void }) {
   return (
-    <div className="h-[300px] flex flex-col items-center justify-center text-muted-foreground">
+    <div className="h-[600px] flex flex-col items-center justify-center text-muted-foreground">
       <AlertCircle className="h-12 w-12 mb-4 text-destructive opacity-50" />
       <p className="text-lg font-medium">Kunde inte ladda prisdata</p>
       <Button variant="outline" size="sm" className="mt-4" onClick={onRetry}>
@@ -172,8 +172,8 @@ export function PriceChart() {
           )}
         </div>
 
-        {/* Time Controls Row */}
-        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+        {/* Time Controls - Row 1: Presets and Interval */}
+        <div className="flex flex-wrap items-center gap-3">
           {/* Time Presets */}
           <div className="flex gap-1 rounded-lg bg-muted p-1">
             {timePresets.map((preset) => (
@@ -192,67 +192,11 @@ export function PriceChart() {
             ))}
           </div>
 
-          {/* Custom Date Range */}
+          {/* Interval Selector - Now next to presets */}
           <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline">Från:</span>
-            <Popover open={fromOpen} onOpenChange={setFromOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "w-[110px] justify-start text-left font-normal text-xs",
-                    activePreset === "CUSTOM" && "border-primary"
-                  )}
-                >
-                  <CalendarIcon className="mr-1 h-3 w-3" />
-                  {format(timeRange.from, "d MMM", { locale: sv })}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={timeRange.from}
-                  onSelect={handleFromDateSelect}
-                  initialFocus
-                  disabled={(date) => date > timeRange.to || date > new Date()}
-                />
-              </PopoverContent>
-            </Popover>
-
-            <span className="text-sm text-muted-foreground">–</span>
-
-            <Popover open={toOpen} onOpenChange={setToOpen}>
-              <PopoverTrigger asChild>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  className={cn(
-                    "w-[110px] justify-start text-left font-normal text-xs",
-                    activePreset === "CUSTOM" && "border-primary"
-                  )}
-                >
-                  <CalendarIcon className="mr-1 h-3 w-3" />
-                  {format(timeRange.to, "d MMM", { locale: sv })}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={timeRange.to}
-                  onSelect={handleToDateSelect}
-                  initialFocus
-                  disabled={(date) => date < timeRange.from || date > new Date()}
-                />
-              </PopoverContent>
-            </Popover>
-          </div>
-
-          {/* Interval Selector */}
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground hidden sm:inline">Intervall:</span>
+            <span className="text-sm text-muted-foreground">Intervall:</span>
             <Select value={interval} onValueChange={(value) => handleIntervalChange(value as DataInterval)}>
-              <SelectTrigger className="w-[100px] h-8 text-xs">
+              <SelectTrigger className="w-[110px] h-9 text-sm">
                 <SelectValue placeholder="Intervall" />
               </SelectTrigger>
               <SelectContent>
@@ -264,6 +208,62 @@ export function PriceChart() {
               </SelectContent>
             </Select>
           </div>
+        </div>
+
+        {/* Time Controls - Row 2: Custom Date Range */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-sm text-muted-foreground">Period:</span>
+          <Popover open={fromOpen} onOpenChange={setFromOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "w-[120px] justify-start text-left font-normal",
+                  activePreset === "CUSTOM" && "border-primary"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(timeRange.from, "d MMM", { locale: sv })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={timeRange.from}
+                onSelect={handleFromDateSelect}
+                initialFocus
+                disabled={(date) => date > timeRange.to || date > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
+
+          <span className="text-sm text-muted-foreground">–</span>
+
+          <Popover open={toOpen} onOpenChange={setToOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className={cn(
+                  "w-[120px] justify-start text-left font-normal",
+                  activePreset === "CUSTOM" && "border-primary"
+                )}
+              >
+                <CalendarIcon className="mr-2 h-4 w-4" />
+                {format(timeRange.to, "d MMM", { locale: sv })}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0" align="start">
+              <Calendar
+                mode="single"
+                selected={timeRange.to}
+                onSelect={handleToDateSelect}
+                initialFocus
+                disabled={(date) => date < timeRange.from || date > new Date()}
+              />
+            </PopoverContent>
+          </Popover>
         </div>
 
         {/* Statistics Row */}
@@ -289,7 +289,7 @@ export function PriceChart() {
         )}
       </div>
 
-      <div className="h-[300px]">
+      <div className="h-[600px]">
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
