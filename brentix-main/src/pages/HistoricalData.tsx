@@ -1,24 +1,26 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  useHistoricalPrices, 
-  useImportHistoricalData, 
+import {
+  useHistoricalPrices,
+  useImportHistoricalData,
   useHistoricalDataCount,
-  type DateRangePreset 
+  type DateRangePreset
 } from "@/hooks/useHistoricalPrices";
+import { usePriceHistoryWithInterval, type DataInterval } from "@/hooks/usePriceHistory";
 import { usePatternOccurrences, useDetectPatterns } from "@/hooks/usePatterns";
 import { HistoricalPriceChart } from "@/components/history/HistoricalPriceChart";
 import { PriceStatisticsCard } from "@/components/history/PriceStatisticsCard";
 import { PatternList } from "@/components/history/PatternList";
 import { PatternDefinitionsList } from "@/components/history/PatternDefinitionsList";
+import { ChartTimeControls, type TimePreset } from "@/components/history/ChartTimeControls";
 import { Download, RefreshCw, Database, TrendingUp, Sparkles, Activity } from "lucide-react";
 import { toast } from "sonner";
-import { subYears, format } from "date-fns";
+import { subYears, subMonths, subWeeks, subDays, subHours, format } from "date-fns";
 
 const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
   { value: "1M", label: "1M" },
@@ -30,11 +32,50 @@ const dateRangeOptions: { value: DateRangePreset; label: string }[] = [
   { value: "ALL", label: "All" },
 ];
 
+// Helper to get initial time range
+function getInitialTimeRange() {
+  const now = new Date();
+  return { from: subDays(now, 1), to: now };
+}
+
+// Helper to get default interval for a preset
+function getDefaultIntervalForPreset(preset: TimePreset): DataInterval {
+  switch (preset) {
+    case "1H": return "1m";
+    case "24H": return "15m";
+    case "1W": return "1h";
+    case "1M": return "4h";
+    case "1Y": return "1d";
+    default: return "1h";
+  }
+}
+
 export default function HistoricalData() {
   const [dateRange, setDateRange] = useState<DateRangePreset>("1Y");
   const [selectedPatterns, setSelectedPatterns] = useState<string[]>([]);
-  
+
+  // New state for enhanced time controls
+  const [timeRange, setTimeRange] = useState(getInitialTimeRange);
+  const [interval, setInterval] = useState<DataInterval>("15m");
+  const [activeTab, setActiveTab] = useState<"chart" | "historical">("chart");
+
   const { prices, statistics, isLoading, error } = useHistoricalPrices(dateRange);
+
+  // Use the new hook for the enhanced chart
+  const {
+    data: realtimeData,
+    statistics: realtimeStats,
+    isLoading: realtimeLoading,
+    error: realtimeError
+  } = usePriceHistoryWithInterval(timeRange, interval);
+
+  const handleTimeRangeChange = useCallback((range: { from: Date; to: Date }) => {
+    setTimeRange(range);
+  }, []);
+
+  const handleIntervalChange = useCallback((newInterval: DataInterval) => {
+    setInterval(newInterval);
+  }, []);
   const { data: totalCount, isLoading: countLoading } = useHistoricalDataCount();
   const importMutation = useImportHistoricalData();
   const detectMutation = useDetectPatterns();
@@ -141,34 +182,20 @@ export default function HistoricalData() {
             </div>
           </div>
 
-          {/* Date Range Selector */}
-          <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
-            {dateRangeOptions.map((option) => (
-              <Button
-                key={option.value}
-                variant={dateRange === option.value ? "secondary" : "ghost"}
-                size="sm"
-                onClick={() => setDateRange(option.value)}
-                className="px-3"
-              >
-                {option.label}
-              </Button>
-            ))}
-          </div>
-
-          {/* Statistics Cards */}
-          {statistics && <PriceStatisticsCard statistics={statistics} isLoading={isLoading} />}
-
           {/* Main Content Tabs */}
-          <Tabs defaultValue="chart" className="space-y-4">
+          <Tabs defaultValue="realtime" className="space-y-4">
             <TabsList>
+              <TabsTrigger value="realtime" className="gap-2">
+                <Activity className="h-4 w-4" />
+                Realtidspris
+              </TabsTrigger>
               <TabsTrigger value="chart" className="gap-2">
                 <TrendingUp className="h-4 w-4" />
-                Price Chart
+                Historik
               </TabsTrigger>
               <TabsTrigger value="patterns" className="gap-2">
-                <Activity className="h-4 w-4" />
-                Patterns
+                <Sparkles className="h-4 w-4" />
+                Mönster
                 {patterns && patterns.length > 0 && (
                   <span className="ml-1 text-xs bg-primary/20 px-1.5 py-0.5 rounded-full">
                     {patterns.length}
@@ -177,12 +204,104 @@ export default function HistoricalData() {
               </TabsTrigger>
             </TabsList>
 
+            {/* Realtime Chart with Time Controls */}
+            <TabsContent value="realtime" className="space-y-4">
+              <Card className="border-0 bg-card/50">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-base font-medium flex items-center gap-2">
+                    <Activity className="h-4 w-4 text-muted-foreground" />
+                    Realtidspris - Brent Crude Oil
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  {/* Time Controls */}
+                  <ChartTimeControls
+                    onTimeRangeChange={handleTimeRangeChange}
+                    onIntervalChange={handleIntervalChange}
+                    selectedPreset="24H"
+                    selectedInterval={interval}
+                  />
+
+                  {/* Statistics for current view */}
+                  {realtimeStats && (
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 p-3 bg-muted/30 rounded-lg">
+                      <div>
+                        <p className="text-xs text-muted-foreground">Senaste</p>
+                        <p className="text-lg font-semibold">${realtimeStats.avg.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Förändring</p>
+                        <p className={`text-lg font-semibold ${realtimeStats.changePercent >= 0 ? "text-green-500" : "text-red-500"}`}>
+                          {realtimeStats.changePercent >= 0 ? "+" : ""}{realtimeStats.changePercent.toFixed(2)}%
+                        </p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Högsta</p>
+                        <p className="text-lg font-semibold">${realtimeStats.max.toFixed(2)}</p>
+                      </div>
+                      <div>
+                        <p className="text-xs text-muted-foreground">Lägsta</p>
+                        <p className="text-lg font-semibold">${realtimeStats.min.toFixed(2)}</p>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Chart */}
+                  {realtimeLoading ? (
+                    <Skeleton className="h-[400px] w-full" />
+                  ) : realtimeError ? (
+                    <div className="h-[400px] flex items-center justify-center text-muted-foreground">
+                      Fel vid laddning: {realtimeError.message}
+                    </div>
+                  ) : realtimeData.length === 0 ? (
+                    <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground gap-4">
+                      <Database className="h-12 w-12 opacity-50" />
+                      <div className="text-center">
+                        <p className="font-medium">Ingen prisdata tillgänglig</p>
+                        <p className="text-sm">Väntar på data för vald tidsperiod</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <HistoricalPriceChart
+                      data={realtimeData.map(d => ({ date: d.date, price: d.price }))}
+                    />
+                  )}
+
+                  {/* Data point count */}
+                  {realtimeData.length > 0 && (
+                    <p className="text-xs text-muted-foreground text-right">
+                      {realtimeData.length} datapunkter
+                    </p>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            {/* Historical Chart Tab */}
             <TabsContent value="chart" className="space-y-4">
+              {/* Date Range Selector for Historical */}
+              <div className="flex gap-1 p-1 bg-muted/50 rounded-lg w-fit">
+                {dateRangeOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    variant={dateRange === option.value ? "secondary" : "ghost"}
+                    size="sm"
+                    onClick={() => setDateRange(option.value)}
+                    className="px-3"
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Statistics Cards */}
+              {statistics && <PriceStatisticsCard statistics={statistics} isLoading={isLoading} />}
+
               <Card className="border-0 bg-card/50">
                 <CardHeader className="pb-2">
                   <CardTitle className="text-base font-medium flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-muted-foreground" />
-                    Price History
+                    Historisk prisdata
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -190,14 +309,14 @@ export default function HistoricalData() {
                     <Skeleton className="h-[400px] w-full" />
                   ) : error ? (
                     <div className="h-[400px] flex items-center justify-center text-muted-foreground">
-                      Error loading data: {error.message}
+                      Fel vid laddning: {error.message}
                     </div>
                   ) : prices.length === 0 ? (
                     <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground gap-4">
                       <Database className="h-12 w-12 opacity-50" />
                       <div className="text-center">
-                        <p className="font-medium">No historical data yet</p>
-                        <p className="text-sm">Click "Import" to fetch 37 years of price history</p>
+                        <p className="font-medium">Ingen historisk data</p>
+                        <p className="text-sm">Klicka "Import" för att hämta 37 års prishistorik</p>
                       </div>
                     </div>
                   ) : (
