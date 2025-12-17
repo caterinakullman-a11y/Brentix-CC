@@ -152,8 +152,8 @@ export function PriceChart() {
     : true;
 
   return (
-    <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-      <div className="flex flex-col gap-4 mb-6">
+    <div className="glass-card rounded-2xl animate-slide-up" style={{ animationDelay: "0.1s" }}>
+      <div className="flex flex-col gap-4 mb-6 px-6 pt-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold text-foreground">Prisdiagram</h3>
@@ -289,7 +289,7 @@ export function PriceChart() {
         )}
       </div>
 
-      <div className="h-[600px]">
+      <div className="h-[600px] pb-4">
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
