@@ -3,6 +3,7 @@ import { MainLayout } from "@/components/layout/MainLayout";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { DualSignalCard } from "@/components/dashboard/DualSignalCard";
 import { TechnicalIndicatorsCompact } from "@/components/dashboard/TechnicalIndicatorsCompact";
+import { PriceCollectionWidget } from "@/components/dashboard/PriceCollectionWidget";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { AdminPendingWidget } from "@/components/dashboard/AdminPendingWidget";
 import { DashboardSkeleton } from "@/components/dashboard/DashboardSkeleton";
@@ -148,19 +149,24 @@ const Index = () => {
           <PriceChart />
         </div>
 
-        {/* Technical Indicators - Below Chart */}
-        <div data-tour="indicators">
-          <TechnicalIndicatorsCompact
-            rsi={indicators?.rsi_14 ?? 0}
-            macd={indicators?.macd ?? 0}
-            macdSignal={indicators?.macd_signal ?? 0}
-            bollingerUpper={indicators?.bollinger_upper ?? 0}
-            bollingerMiddle={indicators?.bollinger_middle ?? 0}
-            bollingerLower={indicators?.bollinger_lower ?? 0}
-            currentPrice={currentPrice}
-            isLoading={indicatorsLoading}
-            hasData={!!indicators}
-          />
+        {/* Technical Indicators + Data Collection Status */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          <div data-tour="indicators" className="lg:col-span-3">
+            <TechnicalIndicatorsCompact
+              rsi={indicators?.rsi_14 ?? 0}
+              macd={indicators?.macd ?? 0}
+              macdSignal={indicators?.macd_signal ?? 0}
+              bollingerUpper={indicators?.bollinger_upper ?? 0}
+              bollingerMiddle={indicators?.bollinger_middle ?? 0}
+              bollingerLower={indicators?.bollinger_lower ?? 0}
+              currentPrice={currentPrice}
+              isLoading={indicatorsLoading}
+              hasData={!!indicators}
+            />
+          </div>
+          <div>
+            <PriceCollectionWidget />
+          </div>
         </div>
       </div>
     ),
