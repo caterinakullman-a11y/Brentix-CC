@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import {
   Area,
   AreaChart,
@@ -9,12 +9,71 @@ import {
   CartesianGrid,
 } from "recharts";
 import { cn } from "@/lib/utils";
-import { usePriceHistory, TimeRange } from "@/hooks/usePriceHistory";
+import { usePriceHistoryWithInterval, type DataInterval } from "@/hooks/usePriceHistory";
 import { Skeleton } from "@/components/ui/skeleton";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, RefreshCw, Calendar as CalendarIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Calendar } from "@/components/ui/calendar";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format, subHours, subDays, subWeeks, subMonths, subYears } from "date-fns";
+import { sv } from "date-fns/locale";
 
-const timeRanges: TimeRange[] = ["1H", "4H", "1D", "1W", "1M"];
+type TimePreset = "1H" | "24H" | "1W" | "1M" | "1Y" | "CUSTOM";
+
+const timePresets: { value: TimePreset; label: string }[] = [
+  { value: "1H", label: "1H" },
+  { value: "24H", label: "24H" },
+  { value: "1W", label: "1W" },
+  { value: "1M", label: "1M" },
+  { value: "1Y", label: "1Y" },
+];
+
+const intervalOptions: { value: DataInterval; label: string }[] = [
+  { value: "1m", label: "1 min" },
+  { value: "5m", label: "5 min" },
+  { value: "15m", label: "15 min" },
+  { value: "1h", label: "1 tim" },
+  { value: "4h", label: "4 tim" },
+  { value: "1d", label: "1 dag" },
+  { value: "1w", label: "1 vecka" },
+  { value: "1M", label: "1 mån" },
+];
+
+// Smart interval defaults based on time range
+function getDefaultInterval(preset: TimePreset): DataInterval {
+  switch (preset) {
+    case "1H": return "1m";
+    case "24H": return "15m";
+    case "1W": return "1h";
+    case "1M": return "4h";
+    case "1Y": return "1d";
+    case "CUSTOM": return "1d";
+    default: return "1h";
+  }
+}
+
+function getTimeRangeFromPreset(preset: TimePreset): { from: Date; to: Date } {
+  const now = new Date();
+  switch (preset) {
+    case "1H": return { from: subHours(now, 1), to: now };
+    case "24H": return { from: subDays(now, 1), to: now };
+    case "1W": return { from: subWeeks(now, 1), to: now };
+    case "1M": return { from: subMonths(now, 1), to: now };
+    case "1Y": return { from: subYears(now, 1), to: now };
+    default: return { from: subDays(now, 1), to: now };
+  }
+}
 
 function ChartSkeleton() {
   return (
@@ -51,41 +110,190 @@ function ChartError({ onRetry }: { onRetry: () => void }) {
 }
 
 export function PriceChart() {
-  const [selectedRange, setSelectedRange] = useState<TimeRange>("1D");
-  const { data, isLoading, error, refetch } = usePriceHistory(selectedRange);
+  const [activePreset, setActivePreset] = useState<TimePreset>("24H");
+  const [interval, setInterval] = useState<DataInterval>("15m");
+  const [timeRange, setTimeRange] = useState(() => getTimeRangeFromPreset("24H"));
+  const [fromOpen, setFromOpen] = useState(false);
+  const [toOpen, setToOpen] = useState(false);
+
+  const { data, statistics, isLoading, error } = usePriceHistoryWithInterval(timeRange, interval);
+
+  const handlePresetClick = useCallback((preset: TimePreset) => {
+    setActivePreset(preset);
+    const newRange = getTimeRangeFromPreset(preset);
+    setTimeRange(newRange);
+    const newInterval = getDefaultInterval(preset);
+    setInterval(newInterval);
+  }, []);
+
+  const handleFromDateSelect = useCallback((date: Date | undefined) => {
+    if (date) {
+      setTimeRange(prev => ({ from: date, to: prev.to }));
+      setActivePreset("CUSTOM");
+      setFromOpen(false);
+    }
+  }, []);
+
+  const handleToDateSelect = useCallback((date: Date | undefined) => {
+    if (date) {
+      setTimeRange(prev => ({ from: prev.from, to: date }));
+      setActivePreset("CUSTOM");
+      setToOpen(false);
+    }
+  }, []);
+
+  const handleIntervalChange = useCallback((value: DataInterval) => {
+    setInterval(value);
+  }, []);
 
   // Beräkna om trenden är positiv
-  const isPositive = data && data.length >= 2 
-    ? data[data.length - 1].price >= data[0].price 
+  const isPositive = data && data.length >= 2
+    ? data[data.length - 1].price >= data[0].price
     : true;
 
   return (
     <div className="glass-card rounded-2xl p-6 animate-slide-up" style={{ animationDelay: "0.1s" }}>
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="text-lg font-semibold text-foreground">Prisdiagram</h3>
-        <div className="flex gap-1 rounded-lg bg-muted p-1">
-          {timeRanges.map((range) => (
-            <button
-              key={range}
-              onClick={() => setSelectedRange(range)}
-              className={cn(
-                "px-3 py-1.5 rounded-md text-sm font-medium transition-all",
-                selectedRange === range
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {range}
-            </button>
-          ))}
+      <div className="flex flex-col gap-4 mb-6">
+        {/* Header */}
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold text-foreground">Prisdiagram</h3>
+          {statistics && (
+            <div className="flex items-center gap-4 text-sm">
+              <span className="text-muted-foreground">
+                Senaste: <span className="text-foreground font-mono font-semibold">${statistics.avg.toFixed(2)}</span>
+              </span>
+              <span className={cn(
+                "font-semibold",
+                statistics.changePercent >= 0 ? "text-green-500" : "text-red-500"
+              )}>
+                {statistics.changePercent >= 0 ? "+" : ""}{statistics.changePercent.toFixed(2)}%
+              </span>
+            </div>
+          )}
         </div>
+
+        {/* Time Controls Row */}
+        <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
+          {/* Time Presets */}
+          <div className="flex gap-1 rounded-lg bg-muted p-1">
+            {timePresets.map((preset) => (
+              <button
+                key={preset.value}
+                onClick={() => handlePresetClick(preset.value)}
+                className={cn(
+                  "px-3 py-1.5 rounded-md text-sm font-medium transition-all",
+                  activePreset === preset.value
+                    ? "bg-primary text-primary-foreground"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                {preset.label}
+              </button>
+            ))}
+          </div>
+
+          {/* Custom Date Range */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden sm:inline">Från:</span>
+            <Popover open={fromOpen} onOpenChange={setFromOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-[110px] justify-start text-left font-normal text-xs",
+                    activePreset === "CUSTOM" && "border-primary"
+                  )}
+                >
+                  <CalendarIcon className="mr-1 h-3 w-3" />
+                  {format(timeRange.from, "d MMM", { locale: sv })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={timeRange.from}
+                  onSelect={handleFromDateSelect}
+                  initialFocus
+                  disabled={(date) => date > timeRange.to || date > new Date()}
+                />
+              </PopoverContent>
+            </Popover>
+
+            <span className="text-sm text-muted-foreground">–</span>
+
+            <Popover open={toOpen} onOpenChange={setToOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={cn(
+                    "w-[110px] justify-start text-left font-normal text-xs",
+                    activePreset === "CUSTOM" && "border-primary"
+                  )}
+                >
+                  <CalendarIcon className="mr-1 h-3 w-3" />
+                  {format(timeRange.to, "d MMM", { locale: sv })}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={timeRange.to}
+                  onSelect={handleToDateSelect}
+                  initialFocus
+                  disabled={(date) => date < timeRange.from || date > new Date()}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+
+          {/* Interval Selector */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground hidden sm:inline">Intervall:</span>
+            <Select value={interval} onValueChange={(value) => handleIntervalChange(value as DataInterval)}>
+              <SelectTrigger className="w-[100px] h-8 text-xs">
+                <SelectValue placeholder="Intervall" />
+              </SelectTrigger>
+              <SelectContent>
+                {intervalOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+
+        {/* Statistics Row */}
+        {statistics && (
+          <div className="grid grid-cols-4 gap-3 p-3 bg-muted/30 rounded-lg text-sm">
+            <div>
+              <p className="text-xs text-muted-foreground">Högsta</p>
+              <p className="font-semibold font-mono">${statistics.max.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Lägsta</p>
+              <p className="font-semibold font-mono">${statistics.min.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Medel</p>
+              <p className="font-semibold font-mono">${statistics.avg.toFixed(2)}</p>
+            </div>
+            <div>
+              <p className="text-xs text-muted-foreground">Datapunkter</p>
+              <p className="font-semibold">{statistics.count}</p>
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="h-[300px]">
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
-          <ChartError onRetry={() => refetch()} />
+          <ChartError onRetry={() => {}} />
         ) : !data || data.length === 0 ? (
           <ChartEmpty />
         ) : (
@@ -110,13 +318,15 @@ export function PriceChart() {
                 dataKey="time"
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                interval="preserveStartEnd"
+                minTickGap={40}
               />
               <YAxis
                 domain={["dataMin - 0.5", "dataMax + 0.5"]}
                 axisLine={false}
                 tickLine={false}
-                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
                 tickFormatter={(value) => `$${value.toFixed(2)}`}
               />
               <Tooltip
