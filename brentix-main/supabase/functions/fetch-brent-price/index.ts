@@ -344,6 +344,37 @@ serve(async (req) => {
           });
       } else {
         console.log(`Signal generated atomically: ${signalType} (${strength}) - ID: ${signalId}`);
+
+        // Send notifications for STRONG signals
+        if (strength === 'STRONG' && signalId) {
+          try {
+            const notificationResponse = await fetch(
+              `${supabaseUrl}/functions/v1/send-signal-notification`,
+              {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': `Bearer ${supabaseKey}`,
+                },
+                body: JSON.stringify({
+                  signalId,
+                  signalType,
+                  strength,
+                  currentPrice: close,
+                  targetPrice,
+                  stopLoss,
+                  confidence: Math.max(probabilityUp, probabilityDown),
+                  reasoning,
+                }),
+              }
+            );
+            const notifResult = await notificationResponse.json();
+            console.log('Signal notification result:', notifResult);
+          } catch (notifError) {
+            console.error('Failed to send signal notification:', notifError);
+            // Don't throw - notification failure shouldn't break the main flow
+          }
+        }
       }
     }
 
