@@ -30,19 +30,19 @@ export default function Register() {
 
   const validateForm = (): string | null => {
     if (!fullName.trim()) {
-      return "Full name is required";
+      return "Fullständigt namn krävs";
     }
     if (!email.trim()) {
-      return "Email is required";
+      return "E-postadress krävs";
     }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      return "Please enter a valid email address";
+      return "Ange en giltig e-postadress";
     }
     if (password.length < 8) {
-      return "Password must be at least 8 characters";
+      return "Lösenordet måste vara minst 8 tecken";
     }
     if (password !== confirmPassword) {
-      return "Passwords do not match";
+      return "Lösenorden matchar inte";
     }
     return null;
   };
@@ -75,7 +75,15 @@ export default function Register() {
       await supabase.auth.signOut();
       setSuccess(true);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Registration failed");
+      // Map Supabase error messages to user-friendly Swedish messages
+      const errorMessage = err instanceof Error ? err.message : "";
+      const errorMessages: Record<string, string> = {
+        "User already registered": "E-postadressen är redan registrerad",
+        "Password should be at least 6 characters": "Lösenordet måste vara minst 6 tecken",
+        "Unable to validate email address": "Ogiltig e-postadress",
+        "Signup requires a valid password": "Ett giltigt lösenord krävs",
+      };
+      setError(errorMessages[errorMessage] ?? "Registreringen misslyckades");
     } finally {
       setIsLoading(false);
     }

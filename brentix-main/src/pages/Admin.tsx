@@ -63,12 +63,18 @@ export default function Admin() {
 
   const sendNotification = async (userId: string, action: "approved" | "rejected", reason?: string) => {
     try {
-      await supabase.functions.invoke("send-approval-notification", {
+      const { error } = await supabase.functions.invoke("send-approval-notification", {
         body: { userId, action, rejectionReason: reason },
       });
-      console.log(`Notification sent for ${action}`);
-    } catch (err) {
-      console.error("Failed to send notification:", err);
+      if (error) {
+        toast({
+          title: "Notifikation misslyckades",
+          description: "Användaren uppdaterades men e-postnotifikation kunde inte skickas.",
+          variant: "destructive",
+        });
+      }
+    } catch {
+      // Silently handle notification failures - user action already succeeded
     }
   };
 

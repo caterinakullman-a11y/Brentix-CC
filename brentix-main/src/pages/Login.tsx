@@ -41,9 +41,14 @@ export default function Login() {
     const { error } = await signIn(email, password);
 
     if (error) {
-      setError(error.message === "Invalid login credentials" 
-        ? "Invalid email or password" 
-        : error.message);
+      // Map Supabase error messages to user-friendly Swedish messages
+      const errorMessages: Record<string, string> = {
+        "Invalid login credentials": "Felaktig e-post eller lösenord",
+        "Email not confirmed": "E-postadressen har inte verifierats",
+        "User not found": "Inget konto hittades med denna e-post",
+        "Too many requests": "För många försök. Vänta en stund och försök igen",
+      };
+      setError(errorMessages[error.message] ?? "Ett fel uppstod vid inloggning");
       setIsLoading(false);
     } else {
       navigate("/", { replace: true });
