@@ -57,6 +57,7 @@ interface PriceHistoryResult {
   statistics: PriceStatistics | null;
   isLoading: boolean;
   error: Error | null;
+  refetch: () => void;
 }
 
 const getRangeConfig = (range: TimeRange) => {
@@ -225,7 +226,7 @@ export function usePriceHistoryWithInterval(
   timeRange: CustomTimeRange,
   interval: DataInterval
 ): PriceHistoryResult {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["price-history-interval", timeRange.from.toISOString(), timeRange.to.toISOString(), interval],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -281,5 +282,6 @@ export function usePriceHistoryWithInterval(
     statistics,
     isLoading,
     error: error as Error | null,
+    refetch,
   };
 }

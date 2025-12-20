@@ -115,7 +115,7 @@ export function RecycleXBuilderForm({ type, editRule, onClose }: RecycleXBuilder
       return;
     }
 
-    const config = {
+    const config: import("@/types/recyclex").RecycleXConfig = {
       capital,
       targetPercent,
       stopLossPercent,
@@ -156,7 +156,7 @@ export function RecycleXBuilderForm({ type, editRule, onClose }: RecycleXBuilder
           await createSuggestion.mutateAsync({
             ruleId: newRule.id,
             ruleType: type,
-            config: config as any,
+            config,
           });
         } catch {
           // Ignore suggestion creation errors

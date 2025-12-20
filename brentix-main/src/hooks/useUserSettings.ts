@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -73,6 +73,16 @@ export function useUserSettings(): UseUserSettingsResult {
   const [error, setError] = useState<Error | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [saveSuccess, setSaveSuccess] = useState(false);
+  const successTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (successTimeoutRef.current) {
+        clearTimeout(successTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const fetchSettings = useCallback(async () => {
     if (!user) {
@@ -134,9 +144,13 @@ export function useUserSettings(): UseUserSettingsResult {
 
         setSettings((prev) => (prev ? { ...prev, ...updates } : null));
         setSaveSuccess(true);
-        
+
+        // Clear any existing timeout
+        if (successTimeoutRef.current) {
+          clearTimeout(successTimeoutRef.current);
+        }
         // Reset success after 2 seconds
-        setTimeout(() => setSaveSuccess(false), 2000);
+        successTimeoutRef.current = setTimeout(() => setSaveSuccess(false), 2000);
       } catch (err) {
         console.error("Error updating settings:", err);
         setError(err as Error);

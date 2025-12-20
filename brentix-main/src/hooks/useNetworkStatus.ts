@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 
 interface NetworkStatus {
   isOnline: boolean;
@@ -10,15 +10,18 @@ export function useNetworkStatus(): NetworkStatus {
     typeof navigator !== "undefined" ? navigator.onLine : true
   );
   const [wasOffline, setWasOffline] = useState(false);
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      if (!isOnline) {
-        setWasOffline(true);
-        // Reset wasOffline after 5 seconds
-        setTimeout(() => setWasOffline(false), 5000);
+      setWasOffline(true);
+      // Clear any existing timeout
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
       }
+      // Reset wasOffline after 5 seconds
+      timeoutRef.current = setTimeout(() => setWasOffline(false), 5000);
     };
 
     const handleOffline = () => {
@@ -31,8 +34,12 @@ export function useNetworkStatus(): NetworkStatus {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      // Cleanup timeout on unmount
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
     };
-  }, [isOnline]);
+  }, []); // Empty dependency array - only set up listeners once
 
   return { isOnline, wasOffline };
 }

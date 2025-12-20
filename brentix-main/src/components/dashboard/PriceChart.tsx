@@ -116,7 +116,7 @@ export function PriceChart() {
   const [fromOpen, setFromOpen] = useState(false);
   const [toOpen, setToOpen] = useState(false);
 
-  const { data, statistics, isLoading, error } = usePriceHistoryWithInterval(timeRange, interval);
+  const { data, statistics, isLoading, error, refetch } = usePriceHistoryWithInterval(timeRange, interval);
 
   const handlePresetClick = useCallback((preset: TimePreset) => {
     setActivePreset(preset);
@@ -293,7 +293,7 @@ export function PriceChart() {
         {isLoading ? (
           <ChartSkeleton />
         ) : error ? (
-          <ChartError onRetry={() => {}} />
+          <ChartError onRetry={refetch} />
         ) : !data || data.length === 0 ? (
           <ChartEmpty />
         ) : (
