@@ -30,27 +30,39 @@ ADD COLUMN IF NOT EXISTS notify_system_updates BOOLEAN DEFAULT FALSE;
 ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 
 -- Users can only see their own notifications
+DROP POLICY IF EXISTS "Users can view own notifications" ON public.notifications;
 CREATE POLICY "Users can view own notifications"
 ON public.notifications FOR SELECT
 USING (auth.uid() = user_id);
 
 -- Users can update their own notifications (mark as read)
+DROP POLICY IF EXISTS "Users can update own notifications" ON public.notifications;
 CREATE POLICY "Users can update own notifications"
 ON public.notifications FOR UPDATE
 USING (auth.uid() = user_id);
 
 -- Users can delete their own notifications
+DROP POLICY IF EXISTS "Users can delete own notifications" ON public.notifications;
 CREATE POLICY "Users can delete own notifications"
 ON public.notifications FOR DELETE
 USING (auth.uid() = user_id);
 
 -- Service role can insert notifications (for edge functions)
+DROP POLICY IF EXISTS "Service role can insert notifications" ON public.notifications;
 CREATE POLICY "Service role can insert notifications"
 ON public.notifications FOR INSERT
 WITH CHECK (true);
 
--- Enable realtime for notifications
-ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+-- Enable realtime for notifications (skip if already added)
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_publication_tables
+        WHERE pubname = 'supabase_realtime' AND tablename = 'notifications'
+    ) THEN
+        ALTER PUBLICATION supabase_realtime ADD TABLE public.notifications;
+    END IF;
+END $$;
 
 -- Function to clean up old notifications (older than 30 days)
 CREATE OR REPLACE FUNCTION public.cleanup_old_notifications()
