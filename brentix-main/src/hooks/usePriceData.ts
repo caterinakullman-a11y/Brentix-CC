@@ -20,10 +20,11 @@ interface PriceDataResult {
   volume: number;
   isLoading: boolean;
   error: Error | null;
+  refetch: () => void;
 }
 
 export function usePriceData(): PriceDataResult {
-  const { data, isLoading, error } = useQuery({
+  const { data, isLoading, error, refetch } = useQuery({
     queryKey: ["price-data"],
     queryFn: async () => {
       // Fetch latest 2 rows to calculate change
@@ -57,5 +58,6 @@ export function usePriceData(): PriceDataResult {
     volume: latestPrice?.volume ?? 0,
     isLoading,
     error: error as Error | null,
+    refetch,
   };
 }

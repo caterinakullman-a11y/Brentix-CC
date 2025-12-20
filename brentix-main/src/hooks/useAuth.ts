@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { User, Session } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -23,65 +23,76 @@ export function useAuth() {
   const [role, setRole] = useState<UserRole>(null);
   const [loading, setLoading] = useState(true);
 
-  const fetchProfile = async (userId: string) => {
+  // Track if component is mounted to prevent state updates after unmount
+  const isMounted = useRef(true);
+  // Track if initial session has been loaded to prevent race condition
+  const initialSessionLoaded = useRef(false);
+
+  const fetchProfile = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
 
-    if (!error && data) {
+    if (!error && data && isMounted.current) {
       setProfile(data as Profile);
     }
-  };
+  }, []);
 
-  const fetchRole = async (userId: string) => {
+  const fetchRole = useCallback(async (userId: string) => {
     const { data, error } = await supabase
       .from("user_roles")
       .select("role")
       .eq("user_id", userId)
       .single();
 
-    if (!error && data) {
+    if (!error && data && isMounted.current) {
       setRole(data.role as UserRole);
     }
-  };
+  }, []);
+
+  const handleSession = useCallback((session: Session | null) => {
+    if (!isMounted.current) return;
+
+    setSession(session);
+    setUser(session?.user ?? null);
+    setLoading(false);
+
+    if (session?.user) {
+      fetchProfile(session.user.id);
+      fetchRole(session.user.id);
+    } else {
+      setProfile(null);
+      setRole(null);
+    }
+  }, [fetchProfile, fetchRole]);
 
   useEffect(() => {
-    // Set up auth state listener FIRST
+    isMounted.current = true;
+
+    // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setLoading(false);
-
-        // Defer profile/role fetch to avoid deadlock
-        if (session?.user) {
-          setTimeout(() => {
-            fetchProfile(session.user.id);
-            fetchRole(session.user.id);
-          }, 0);
-        } else {
-          setProfile(null);
-          setRole(null);
+        // Only handle auth changes after initial session is loaded
+        // This prevents race condition between getSession and onAuthStateChange
+        if (initialSessionLoaded.current) {
+          handleSession(session);
         }
       }
     );
 
-    // THEN check for existing session
+    // Get initial session
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      setLoading(false);
-
-      if (session?.user) {
-        fetchProfile(session.user.id);
-        fetchRole(session.user.id);
-      }
+      initialSessionLoaded.current = true;
+      handleSession(session);
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      isMounted.current = false;
+      subscription.unsubscribe();
+    };
+  }, [handleSession]);
 
   const signIn = async (email: string, password: string) => {
     const { error, data } = await supabase.auth.signInWithPassword({

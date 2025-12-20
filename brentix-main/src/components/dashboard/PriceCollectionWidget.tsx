@@ -90,15 +90,16 @@ export function PriceCollectionWidget() {
           className="flex-1 h-8 text-xs"
           onClick={() => toggleMutation.mutate(!isActive)}
           disabled={toggleMutation.isPending || statusLoading}
+          aria-label={isActive ? "Pausa prisinsamling" : "Starta prisinsamling"}
         >
           {isActive ? (
             <>
-              <Pause className="h-3 w-3 mr-1.5" />
+              <Pause className="h-3 w-3 mr-1.5" aria-hidden="true" />
               Pausa
             </>
           ) : (
             <>
-              <Play className="h-3 w-3 mr-1.5" />
+              <Play className="h-3 w-3 mr-1.5" aria-hidden="true" />
               Starta
             </>
           )}
@@ -109,8 +110,9 @@ export function PriceCollectionWidget() {
           className="h-8 text-xs"
           onClick={() => fetchMutation.mutate()}
           disabled={fetchMutation.isPending}
+          aria-label="Hämta senaste pris manuellt"
         >
-          <RefreshCw className={cn("h-3 w-3", fetchMutation.isPending && "animate-spin")} />
+          <RefreshCw className={cn("h-3 w-3", fetchMutation.isPending && "animate-spin")} aria-hidden="true" />
         </Button>
       </div>
 
