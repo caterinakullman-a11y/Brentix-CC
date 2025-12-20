@@ -58,14 +58,19 @@ function SingleSignalCard({
   const signalColor = isBuy ? "text-primary" : isSell ? "text-destructive" : "text-yellow-500";
   
   const SignalIcon = isBuy ? TrendingUp : isSell ? TrendingDown : Zap;
+  const signalLabel = isBuy ? "köpsignal" : isSell ? "säljsignal" : "avvaktasignal";
 
   return (
-    <div className={cn(
-      "glass-card rounded-xl p-5 space-y-4",
-      isBuy && "ring-2 ring-primary/30",
-      isSell && "ring-2 ring-destructive/30",
-      className
-    )}>
+    <div
+      className={cn(
+        "glass-card rounded-xl p-5 space-y-4",
+        isBuy && "ring-2 ring-primary/30",
+        isSell && "ring-2 ring-destructive/30",
+        className
+      )}
+      role="region"
+      aria-label={`${instrument} certifikat med ${signalLabel}`}
+    >
       {/* Header */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -100,7 +105,7 @@ function SingleSignalCard({
               </div>
             )}
             <div className="flex items-center gap-2 mt-0.5">
-              <SignalIcon className={cn("h-4 w-4", signalColor)} />
+              <SignalIcon className={cn("h-4 w-4", signalColor)} aria-hidden="true" />
               <span className={cn("font-semibold", signalColor)}>
                 {isBuy ? "KÖP" : isSell ? "SÄLJ" : "AVVAKTA"}
               </span>
@@ -298,8 +303,11 @@ export function DualSignalCard() {
       <div className="flex items-center justify-end">
         <Popover open={popoverOpen} onOpenChange={setPopoverOpen}>
           <PopoverTrigger asChild>
-            <button className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors">
-              <Settings2 className="h-3.5 w-3.5" />
+            <button
+              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+              aria-label="Öppna inställningar för att byta certifikat"
+            >
+              <Settings2 className="h-3.5 w-3.5" aria-hidden="true" />
               Byt certifikat
             </button>
           </PopoverTrigger>
@@ -326,13 +334,14 @@ export function DualSignalCard() {
                 />
               </div>
 
-              <Button 
-                onClick={handleSaveInstruments} 
+              <Button
+                onClick={handleSaveInstruments}
                 disabled={isSaving}
                 className="w-full gap-2"
                 size="sm"
+                aria-label="Spara certifikatval"
               >
-                <Check className="h-4 w-4" />
+                <Check className="h-4 w-4" aria-hidden="true" />
                 {isSaving ? "Sparar..." : "Spara"}
               </Button>
             </div>

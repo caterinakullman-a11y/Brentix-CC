@@ -1,12 +1,31 @@
-import { useEffect, useCallback } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import type { RealtimeChannel } from "@supabase/supabase-js";
+
+// Helper to handle subscription with error callback
+function subscribeWithErrorHandling(
+  channel: RealtimeChannel,
+  onError?: (error: Error) => void
+) {
+  return channel.subscribe((status, error) => {
+    if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+      console.error('Subscription error:', status, error);
+      onError?.(new Error(`Subscription failed: ${status}`));
+    }
+  });
+}
 
 export function useRealtimeSubscriptions() {
   const queryClient = useQueryClient();
+  const [connectionError, setConnectionError] = useState<Error | null>(null);
 
   useEffect(() => {
+    const handleSubscriptionError = (error: Error) => {
+      setConnectionError(error);
+    };
+
     // Subscribe to price_data changes
     const priceChannel = supabase
       .channel('price-changes')
@@ -17,12 +36,11 @@ export function useRealtimeSubscriptions() {
           schema: 'public',
           table: 'price_data'
         },
-        (payload) => {
-          console.log('New price data:', payload);
+        () => {
           queryClient.invalidateQueries({ queryKey: ['price-data'] });
         }
-      )
-      .subscribe();
+      );
+    subscribeWithErrorHandling(priceChannel, handleSubscriptionError);
 
     // Subscribe to signals changes
     const signalsChannel = supabase
@@ -35,22 +53,21 @@ export function useRealtimeSubscriptions() {
           table: 'signals'
         },
         (payload) => {
-          console.log('New signal:', payload);
           queryClient.invalidateQueries({ queryKey: ['active-signal'] });
           queryClient.invalidateQueries({ queryKey: ['recent-signals'] });
           queryClient.invalidateQueries({ queryKey: ['active-signals-count'] });
-          
+
           const signal = payload.new as { signal_type: string; is_active: boolean };
           if (signal.is_active) {
             toast({
-              title: `New ${signal.signal_type} Signal`,
-              description: "A new trading signal has been generated",
+              title: `Ny ${signal.signal_type}-signal`,
+              description: "En ny handelssignal har genererats",
               duration: 5000,
             });
           }
         }
-      )
-      .subscribe();
+      );
+    subscribeWithErrorHandling(signalsChannel, handleSubscriptionError);
 
     // Subscribe to trades changes
     const tradesChannel = supabase
@@ -62,12 +79,11 @@ export function useRealtimeSubscriptions() {
           schema: 'public',
           table: 'trades'
         },
-        (payload) => {
-          console.log('Trade update:', payload);
+        () => {
           queryClient.invalidateQueries({ queryKey: ['today-stats'] });
         }
-      )
-      .subscribe();
+      );
+    subscribeWithErrorHandling(tradesChannel, handleSubscriptionError);
 
     // Subscribe to technical_indicators changes
     const indicatorsChannel = supabase
@@ -79,12 +95,11 @@ export function useRealtimeSubscriptions() {
           schema: 'public',
           table: 'technical_indicators'
         },
-        (payload) => {
-          console.log('New indicators:', payload);
+        () => {
           queryClient.invalidateQueries({ queryKey: ['technical-indicators'] });
         }
-      )
-      .subscribe();
+      );
+    subscribeWithErrorHandling(indicatorsChannel, handleSubscriptionError);
 
     // Subscribe to instruments changes (for real-time price updates)
     const instrumentsChannel = supabase
@@ -96,14 +111,13 @@ export function useRealtimeSubscriptions() {
           schema: 'public',
           table: 'instruments'
         },
-        (payload) => {
-          console.log('Instrument update:', payload);
+        () => {
           queryClient.invalidateQueries({ queryKey: ['instruments'] });
           queryClient.invalidateQueries({ queryKey: ['instrument-pairs'] });
           queryClient.invalidateQueries({ queryKey: ['user-instrument-pairs'] });
         }
-      )
-      .subscribe();
+      );
+    subscribeWithErrorHandling(instrumentsChannel, handleSubscriptionError);
 
     return () => {
       supabase.removeChannel(priceChannel);
@@ -126,5 +140,5 @@ export function useRealtimeSubscriptions() {
     }
   }, []);
 
-  return { triggerPriceFetch };
+  return { triggerPriceFetch, connectionError };
 }
