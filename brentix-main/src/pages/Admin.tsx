@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/useAuth";
@@ -6,7 +6,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/hooks/use-toast";
-import { Check, X, UserCheck, Users, Clock, XCircle, Search } from "lucide-react";
+import {
+  Check, X, UserCheck, Users, Clock, XCircle, Search,
+  Activity, TrendingUp, FileText, Zap, Database, RefreshCw,
+  CheckCircle2, AlertTriangle, XOctagon
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface UserProfile {
@@ -17,6 +21,25 @@ interface UserProfile {
   created_at: string;
   approved_at: string | null;
   rejection_reason: string | null;
+}
+
+interface SystemStats {
+  totalUsers: number;
+  approvedUsers: number;
+  pendingUsers: number;
+  rejectedUsers: number;
+  totalSignals: number;
+  activeSignals: number;
+  totalTrades: number;
+  totalPaperTrades: number;
+  priceDataPoints: number;
+}
+
+interface SystemHealth {
+  database: "ok" | "warning" | "error";
+  priceData: "ok" | "warning" | "error";
+  lastPriceUpdate: string | null;
+  priceDataAge: number | null; // minutes since last update
 }
 
 type FilterTab = "all" | "pending" | "approved" | "rejected";
@@ -33,6 +56,75 @@ export default function Admin() {
     userId: null,
   });
   const [rejectionReason, setRejectionReason] = useState("");
+  const [stats, setStats] = useState<SystemStats | null>(null);
+  const [health, setHealth] = useState<SystemHealth | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
+  const fetchStats = useCallback(async () => {
+    setStatsLoading(true);
+    try {
+      // Fetch all stats in parallel
+      const [
+        { count: totalSignals },
+        { count: activeSignals },
+        { count: totalTrades },
+        { count: totalPaperTrades },
+        { count: priceDataPoints },
+        { data: latestPrice }
+      ] = await Promise.all([
+        supabase.from("signals").select("*", { count: "exact", head: true }),
+        supabase.from("signals").select("*", { count: "exact", head: true }).eq("is_active", true),
+        supabase.from("trades").select("*", { count: "exact", head: true }),
+        supabase.from("paper_trades").select("*", { count: "exact", head: true }),
+        supabase.from("price_data").select("*", { count: "exact", head: true }),
+        supabase.from("price_data").select("timestamp").order("timestamp", { ascending: false }).limit(1)
+      ]);
+
+      // Calculate health status
+      let priceDataStatus: "ok" | "warning" | "error" = "ok";
+      let priceDataAge: number | null = null;
+      let lastPriceUpdate: string | null = null;
+
+      if (latestPrice && latestPrice.length > 0) {
+        lastPriceUpdate = latestPrice[0].timestamp;
+        const lastUpdate = new Date(latestPrice[0].timestamp);
+        priceDataAge = Math.floor((Date.now() - lastUpdate.getTime()) / 60000);
+
+        if (priceDataAge > 10) priceDataStatus = "error";
+        else if (priceDataAge > 5) priceDataStatus = "warning";
+      } else {
+        priceDataStatus = "error";
+      }
+
+      setStats({
+        totalUsers: users.length,
+        approvedUsers: users.filter(u => u.status === "approved").length,
+        pendingUsers: users.filter(u => u.status === "pending").length,
+        rejectedUsers: users.filter(u => u.status === "rejected").length,
+        totalSignals: totalSignals ?? 0,
+        activeSignals: activeSignals ?? 0,
+        totalTrades: totalTrades ?? 0,
+        totalPaperTrades: totalPaperTrades ?? 0,
+        priceDataPoints: priceDataPoints ?? 0,
+      });
+
+      setHealth({
+        database: "ok",
+        priceData: priceDataStatus,
+        lastPriceUpdate,
+        priceDataAge,
+      });
+    } catch (error) {
+      console.error("Error fetching stats:", error);
+      setHealth({
+        database: "error",
+        priceData: "error",
+        lastPriceUpdate: null,
+        priceDataAge: null,
+      });
+    }
+    setStatsLoading(false);
+  }, [users]);
 
   useEffect(() => {
     if (!loading && !user) {
@@ -47,6 +139,12 @@ export default function Admin() {
       fetchUsers();
     }
   }, [user, isAdmin, loading, navigate]);
+
+  useEffect(() => {
+    if (users.length > 0) {
+      fetchStats();
+    }
+  }, [users, fetchStats]);
 
   const fetchUsers = async () => {
     setIsLoading(true);
@@ -166,23 +264,158 @@ export default function Admin() {
     );
   }
 
+  const getHealthIcon = (status: "ok" | "warning" | "error") => {
+    switch (status) {
+      case "ok": return <CheckCircle2 className="h-4 w-4 text-green-500" />;
+      case "warning": return <AlertTriangle className="h-4 w-4 text-yellow-500" />;
+      case "error": return <XOctagon className="h-4 w-4 text-red-500" />;
+    }
+  };
+
+  const getHealthColor = (status: "ok" | "warning" | "error") => {
+    switch (status) {
+      case "ok": return "text-green-500 bg-green-500/10";
+      case "warning": return "text-yellow-500 bg-yellow-500/10";
+      case "error": return "text-red-500 bg-red-500/10";
+    }
+  };
+
   return (
     <MainLayout>
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-foreground">User Management</h1>
+            <h1 className="text-2xl font-bold text-foreground">Adminpanel</h1>
             <p className="text-sm text-muted-foreground">
-              Manage user access and permissions
+              Systemöversikt och användarhantering
             </p>
           </div>
-          {pendingCount > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-warning/10 text-warning text-sm">
-              <Clock className="h-4 w-4" />
-              {pendingCount} pending
-            </div>
-          )}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => { fetchUsers(); fetchStats(); }}
+            className="gap-2"
+          >
+            <RefreshCw className="h-4 w-4" />
+            Uppdatera
+          </Button>
         </div>
+
+        {/* System Health */}
+        {health && (
+          <div className="glass-card rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+                <Activity className="h-4 w-4" />
+                Systemhälsa
+              </h3>
+              {health.lastPriceUpdate && (
+                <span className="text-xs text-muted-foreground">
+                  Senaste uppdatering: {new Date(health.lastPriceUpdate).toLocaleTimeString("sv-SE")}
+                </span>
+              )}
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg", getHealthColor(health.database))}>
+                {getHealthIcon(health.database)}
+                <div>
+                  <p className="text-xs font-medium">Databas</p>
+                  <p className="text-xs opacity-80">{health.database === "ok" ? "Ansluten" : "Problem"}</p>
+                </div>
+              </div>
+              <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg", getHealthColor(health.priceData))}>
+                {getHealthIcon(health.priceData)}
+                <div>
+                  <p className="text-xs font-medium">Prisdata</p>
+                  <p className="text-xs opacity-80">
+                    {health.priceDataAge !== null
+                      ? health.priceDataAge === 0 ? "Just nu" : `${health.priceDataAge} min sedan`
+                      : "Ingen data"}
+                  </p>
+                </div>
+              </div>
+              <div className={cn("flex items-center gap-2 px-3 py-2 rounded-lg", pendingCount > 0 ? "text-yellow-500 bg-yellow-500/10" : "text-green-500 bg-green-500/10")}>
+                {pendingCount > 0 ? <AlertTriangle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                <div>
+                  <p className="text-xs font-medium">Väntande</p>
+                  <p className="text-xs opacity-80">{pendingCount} användare</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg text-primary bg-primary/10">
+                <Zap className="h-4 w-4" />
+                <div>
+                  <p className="text-xs font-medium">Aktiva signaler</p>
+                  <p className="text-xs opacity-80">{stats?.activeSignals ?? 0}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Statistics Grid */}
+        {stats && !statsLoading && (
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4">
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-primary/10">
+                  <Users className="h-5 w-5 text-primary" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalUsers}</p>
+                  <p className="text-xs text-muted-foreground">Totalt användare</p>
+                </div>
+              </div>
+            </div>
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-green-500/10">
+                  <UserCheck className="h-5 w-5 text-green-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.approvedUsers}</p>
+                  <p className="text-xs text-muted-foreground">Godkända</p>
+                </div>
+              </div>
+            </div>
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-blue-500/10">
+                  <TrendingUp className="h-5 w-5 text-blue-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalSignals}</p>
+                  <p className="text-xs text-muted-foreground">Totalt signaler</p>
+                </div>
+              </div>
+            </div>
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-purple-500/10">
+                  <FileText className="h-5 w-5 text-purple-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.totalTrades + stats.totalPaperTrades}</p>
+                  <p className="text-xs text-muted-foreground">Totalt trades</p>
+                </div>
+              </div>
+            </div>
+            <div className="glass-card rounded-xl p-4">
+              <div className="flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-orange-500/10">
+                  <Database className="h-5 w-5 text-orange-500" />
+                </div>
+                <div>
+                  <p className="text-2xl font-bold text-foreground">{stats.priceDataPoints.toLocaleString()}</p>
+                  <p className="text-xs text-muted-foreground">Datapunkter</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* User Management Section */}
+        <div className="glass-card rounded-xl p-6">
+          <h2 className="text-lg font-semibold text-foreground mb-4">Användarhantering</h2>
 
         {/* Tabs */}
         <div className="flex items-center gap-6 border-b border-border">
@@ -220,7 +453,7 @@ export default function Admin() {
         </div>
 
         {/* Users Table */}
-        <div className="glass-card rounded-xl overflow-hidden">
+        <div className="overflow-hidden rounded-lg border border-border/50">
           <table className="w-full">
             <thead>
               <tr className="border-b border-border">
@@ -327,6 +560,7 @@ export default function Admin() {
               )}
             </tbody>
           </table>
+        </div>
         </div>
       </div>
 
