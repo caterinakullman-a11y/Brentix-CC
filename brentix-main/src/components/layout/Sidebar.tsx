@@ -62,7 +62,8 @@ const SIDEBAR_SECTIONS = [
     title: "ANALYS",
     items: [
       { to: "/performance", icon: LineChart, label: "Prestanda" },
-      { to: "/history", icon: History, label: "Historik" },
+      { to: "/history", icon: History, label: "Min historik" },
+      { to: "/price-history", icon: BarChart2, label: "Kurshistorik" },
       { to: "/analysis", icon: BarChart3, label: "Analys" },
       { to: "/rules", icon: Zap, label: "Regler" },
     ],
