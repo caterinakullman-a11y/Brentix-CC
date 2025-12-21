@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { TrendingUp, TrendingDown, LogOut, RefreshCw, Shield, Sun, Moon, Fuel, ChevronDown, User, Settings2, AlertTriangle } from "lucide-react";
+import { TrendingUp, TrendingDown, LogOut, RefreshCw, Shield, Sun, Moon, Fuel, ChevronDown, User, Settings2, AlertTriangle, OctagonX } from "lucide-react";
 import { useNavigate, Link } from "react-router-dom";
 import { useTheme } from "next-themes";
 import { cn } from "@/lib/utils";
@@ -29,6 +29,7 @@ import { useUserSettings } from "@/hooks/useUserSettings";
 import { useStorageStatus } from "@/hooks/useStorageStatus";
 import { MobileMenuButton } from "./MobileDrawer";
 import { LanguageSelector } from "@/components/LanguageSelector";
+import { useEmergencyStop, useToggleEmergencyStop } from "@/hooks/useSafetyControls";
 
 interface HeaderProps {
   currentPrice: number;
@@ -66,6 +67,11 @@ export function Header({
   const isPaperTrading = settings?.paper_trading_enabled ?? true;
   const { status: storageStatus } = useStorageStatus();
   const { t } = useTranslation();
+
+  // Emergency Stop
+  const { data: emergencyStop } = useEmergencyStop();
+  const toggleEmergencyStop = useToggleEmergencyStop();
+  const isEmergencyActive = emergencyStop?.is_active ?? false;
 
   useEffect(() => {
     setMounted(true);
@@ -131,6 +137,28 @@ export function Header({
 
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || "U";
 
+  const handleEmergencyStop = async () => {
+    try {
+      await toggleEmergencyStop.mutateAsync({
+        activate: !isEmergencyActive,
+        reason: isEmergencyActive ? 'Manually deactivated' : 'Manual emergency stop'
+      });
+      toast({
+        title: isEmergencyActive ? "Nödstopp avaktiverat" : "NÖDSTOPP AKTIVERAT",
+        description: isEmergencyActive
+          ? "Handel kan nu återupptas"
+          : "All automatisk handel har stoppats",
+        variant: isEmergencyActive ? "default" : "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Fel",
+        description: "Kunde inte ändra nödstopp-status",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <header className="sticky top-0 z-30 flex h-14 md:h-16 items-center justify-between border-b border-border bg-background/95 backdrop-blur-lg px-3 md:px-6">
@@ -185,6 +213,44 @@ export function Header({
 
         {/* Right side - Controls */}
         <div className="flex items-center gap-2 md:gap-3">
+          {/* Emergency Stop Button - Always Visible */}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant={isEmergencyActive ? "destructive" : "outline"}
+                  size="sm"
+                  onClick={handleEmergencyStop}
+                  disabled={toggleEmergencyStop.isPending}
+                  className={cn(
+                    "gap-1.5 h-8 text-xs font-semibold",
+                    isEmergencyActive
+                      ? "bg-red-600 hover:bg-red-700 text-white animate-pulse"
+                      : "border-red-500/50 text-red-500 hover:bg-red-500/10 hover:text-red-600"
+                  )}
+                >
+                  <OctagonX className="h-4 w-4" />
+                  <span className="hidden sm:inline">
+                    {isEmergencyActive ? "STOPPAD" : "NÖDSTOPP"}
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p className="font-semibold">
+                  {isEmergencyActive ? "Nödstopp är AKTIVT" : "Nödstopp"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {isEmergencyActive
+                    ? "Klicka för att avaktivera och återuppta handel"
+                    : "Klicka för att stoppa all automatisk handel"
+                  }
+                </p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+
+          <div className="hidden md:block w-px h-4 bg-border" />
+
           {/* Refresh Button */}
           <Button
             variant="ghost"
