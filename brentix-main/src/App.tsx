@@ -51,6 +51,7 @@ const Pairs = lazy(() => import("./pages/Pairs"));
 const Safety = lazy(() => import("./pages/Safety"));
 const PaperHistory = lazy(() => import("./pages/PaperHistory"));
 const PriceHistory = lazy(() => import("./pages/PriceHistory"));
+const BacktestHistory = lazy(() => import("./pages/BacktestHistory"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 // Prisanalys pages (lazy loaded)
@@ -196,6 +197,14 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <PriceHistory />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/backtest-history"
+            element={
+              <ProtectedRoute>
+                <BacktestHistory />
               </ProtectedRoute>
             }
           />
