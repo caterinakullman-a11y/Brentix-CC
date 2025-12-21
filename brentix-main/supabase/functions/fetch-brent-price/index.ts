@@ -68,23 +68,47 @@ serve(async (req) => {
     const data = await response.json();
     console.log("Yahoo Finance response received");
 
-    const quote = data.chart?.result?.[0]?.meta;
-    const indicators = data.chart?.result?.[0]?.indicators?.quote?.[0];
-    
-    if (!quote || !indicators) {
-      throw new Error("Invalid Yahoo Finance response format");
+    const result = data.chart?.result?.[0];
+    const quote = result?.meta;
+    const indicators = result?.indicators?.quote?.[0];
+
+    if (!quote) {
+      throw new Error("Invalid Yahoo Finance response: missing quote data");
     }
 
     const currentPrice = quote.regularMarketPrice;
     const previousClose = quote.previousClose || quote.chartPreviousClose;
-    
-    // Get OHLC from the latest data point
-    const lastIndex = indicators.close.length - 1;
-    const open = indicators.open[lastIndex] || currentPrice;
-    const high = indicators.high[lastIndex] || currentPrice;
-    const low = indicators.low[lastIndex] || currentPrice;
+
+    if (!currentPrice) {
+      throw new Error("No current price available - market may be closed");
+    }
+
+    // Get OHLC from the latest data point, with fallbacks for closed market
+    let open = currentPrice;
+    let high = currentPrice;
+    let low = currentPrice;
+    let volume = 0;
+
+    // Check if we have valid indicator data (market open)
+    if (indicators?.close && Array.isArray(indicators.close) && indicators.close.length > 0) {
+      // Find the last valid (non-null) data point
+      let lastValidIndex = -1;
+      for (let i = indicators.close.length - 1; i >= 0; i--) {
+        if (indicators.close[i] !== null) {
+          lastValidIndex = i;
+          break;
+        }
+      }
+
+      if (lastValidIndex >= 0) {
+        open = indicators.open?.[lastValidIndex] ?? currentPrice;
+        high = indicators.high?.[lastValidIndex] ?? currentPrice;
+        low = indicators.low?.[lastValidIndex] ?? currentPrice;
+        volume = indicators.volume?.[lastValidIndex] ?? 0;
+      }
+    }
+
     const close = currentPrice;
-    const volume = indicators.volume[lastIndex] || 0;
 
     console.log(`Price data: Open=${open}, High=${high}, Low=${low}, Close=${close}`);
 
