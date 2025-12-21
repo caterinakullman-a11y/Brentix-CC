@@ -23,6 +23,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Calendar } from "@/components/ui/calendar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
   useHistoricalData,
   exportToCSV,
@@ -51,6 +53,7 @@ import {
   TrendingDown,
   BarChart3,
   TableIcon,
+  CalendarIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { format, subDays, subMonths, subYears } from "date-fns";
@@ -180,8 +183,21 @@ const PrisanalysHistorik = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart");
   const [quickRange, setQuickRange] = useState<QuickRange>("30d");
+  const [customFrom, setCustomFrom] = useState<Date | undefined>();
+  const [customTo, setCustomTo] = useState<Date | undefined>();
 
-  const chartDateRange = useMemo(() => getChartDateRange(quickRange), [quickRange]);
+  const chartDateRange = useMemo(() => {
+    if (customFrom && customTo) {
+      return { from: customFrom, to: customTo };
+    }
+    return getChartDateRange(quickRange);
+  }, [quickRange, customFrom, customTo]);
+
+  const handleQuickRange = (range: QuickRange) => {
+    setQuickRange(range);
+    setCustomFrom(undefined);
+    setCustomTo(undefined);
+  };
   const { data: chartData, isLoading: chartLoading } = useChartData(chartDateRange.from, chartDateRange.to);
 
   const chartStats = useMemo(() => {
@@ -290,13 +306,72 @@ const PrisanalysHistorik = () => {
               {QUICK_RANGES.map(({ key, label }) => (
                 <Button
                   key={key}
-                  variant={quickRange === key ? "default" : "outline"}
+                  variant={quickRange === key && !customFrom ? "default" : "outline"}
                   size="sm"
-                  onClick={() => setQuickRange(key)}
+                  onClick={() => handleQuickRange(key)}
                 >
                   {label}
                 </Button>
               ))}
+            </div>
+
+            {/* Custom Date Range */}
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Från:</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[140px] justify-start">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {format(chartDateRange.from, "yyyy-MM-dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customFrom ?? chartDateRange.from}
+                      onSelect={(date) => {
+                        setCustomFrom(date);
+                        if (!customTo) setCustomTo(new Date());
+                      }}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-muted-foreground">Till:</span>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button variant="outline" size="sm" className="w-[140px] justify-start">
+                      <CalendarIcon className="h-4 w-4 mr-2" />
+                      {format(chartDateRange.to, "yyyy-MM-dd")}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                      mode="single"
+                      selected={customTo ?? chartDateRange.to}
+                      onSelect={setCustomTo}
+                      initialFocus
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+
+              {customFrom && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setCustomFrom(undefined);
+                    setCustomTo(undefined);
+                  }}
+                >
+                  Rensa
+                </Button>
+              )}
             </div>
 
             {/* Chart */}
