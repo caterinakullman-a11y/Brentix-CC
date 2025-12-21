@@ -73,13 +73,14 @@ export function FourWayTradeButtons({
                 size="lg"
                 onClick={() => handleTrade("BUY", "BULL")}
                 className={cn(
-                  "h-12 flex-col gap-0.5 bg-primary hover:bg-primary/90",
-                  showRecommendation && recommendations.buyBull && 
+                  "h-12 flex-col gap-0.5 bg-primary hover:bg-primary/90 focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                  showRecommendation && recommendations.buyBull &&
                     "ring-2 ring-primary/50 shadow-lg shadow-primary/20"
                 )}
+                aria-label={`Köp ${bullInstrument?.name || 'BULL'} certifikat${recommendations.buyBull ? ' - Rekommenderas' : ''}`}
               >
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4" aria-hidden="true" />
                   <span className="font-bold">KÖP</span>
                 </div>
                 {showRecommendation && recommendations.buyBull && (
@@ -92,13 +93,14 @@ export function FourWayTradeButtons({
                 variant="outline"
                 onClick={() => handleTrade("SELL", "BULL")}
                 className={cn(
-                  "h-12 flex-col gap-0.5 border-primary/30 hover:bg-primary/10",
-                  showRecommendation && recommendations.sellBull && 
+                  "h-12 flex-col gap-0.5 border-primary/30 hover:bg-primary/10 focus:ring-2 focus:ring-primary focus:ring-offset-2",
+                  showRecommendation && recommendations.sellBull &&
                     "ring-2 ring-destructive/50 border-destructive/50"
                 )}
+                aria-label={`Sälj ${bullInstrument?.name || 'BULL'} certifikat${recommendations.sellBull ? ' - Stäng position' : ''}`}
               >
                 <div className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4" />
+                  <TrendingDown className="h-4 w-4" aria-hidden="true" />
                   <span className="font-bold">SÄLJ</span>
                 </div>
                 {showRecommendation && recommendations.sellBull && (
@@ -127,13 +129,14 @@ export function FourWayTradeButtons({
                 variant="destructive"
                 onClick={() => handleTrade("BUY", "BEAR")}
                 className={cn(
-                  "h-12 flex-col gap-0.5",
-                  showRecommendation && recommendations.buyBear && 
+                  "h-12 flex-col gap-0.5 focus:ring-2 focus:ring-destructive focus:ring-offset-2",
+                  showRecommendation && recommendations.buyBear &&
                     "ring-2 ring-destructive/50 shadow-lg shadow-destructive/20"
                 )}
+                aria-label={`Köp ${bearInstrument?.name || 'BEAR'} certifikat${recommendations.buyBear ? ' - Rekommenderas' : ''}`}
               >
                 <div className="flex items-center gap-2">
-                  <TrendingDown className="h-4 w-4" />
+                  <TrendingDown className="h-4 w-4" aria-hidden="true" />
                   <span className="font-bold">KÖP</span>
                 </div>
                 {showRecommendation && recommendations.buyBear && (
@@ -146,13 +149,14 @@ export function FourWayTradeButtons({
                 variant="outline"
                 onClick={() => handleTrade("SELL", "BEAR")}
                 className={cn(
-                  "h-12 flex-col gap-0.5 border-destructive/30 hover:bg-destructive/10",
-                  showRecommendation && recommendations.sellBear && 
+                  "h-12 flex-col gap-0.5 border-destructive/30 hover:bg-destructive/10 focus:ring-2 focus:ring-destructive focus:ring-offset-2",
+                  showRecommendation && recommendations.sellBear &&
                     "ring-2 ring-primary/50 border-primary/50"
                 )}
+                aria-label={`Sälj ${bearInstrument?.name || 'BEAR'} certifikat${recommendations.sellBear ? ' - Stäng position' : ''}`}
               >
                 <div className="flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" />
+                  <TrendingUp className="h-4 w-4" aria-hidden="true" />
                   <span className="font-bold">SÄLJ</span>
                 </div>
                 {showRecommendation && recommendations.sellBear && (

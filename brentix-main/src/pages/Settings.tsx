@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { MainLayout } from "@/components/layout/MainLayout";
-import { Check } from "lucide-react";
+import { Check, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useUserSettings } from "@/hooks/useUserSettings";
 import { QueueStatusCard } from "@/components/settings/QueueStatusCard";
 import { TradingModeCard } from "@/components/settings/TradingModeCard";
@@ -73,11 +74,11 @@ const Settings = () => {
 
   const validateForm = (): boolean => {
     const newErrors: FormErrors = {};
-    if (formData.initial_capital_sek < 1000) newErrors.initial_capital_sek = "Capital must be at least 1,000 SEK";
-    if (formData.stop_loss_percent < 0.1 || formData.stop_loss_percent > 100) newErrors.stop_loss_percent = "Must be between 0.1% and 100%";
-    if (formData.take_profit_percent < 0.1 || formData.take_profit_percent > 100) newErrors.take_profit_percent = "Must be between 0.1% and 100%";
-    if (formData.max_position_size_percent < 0.1 || formData.max_position_size_percent > 100) newErrors.max_position_size_percent = "Must be between 0.1% and 100%";
-    if (formData.position_size_sek < 100) newErrors.position_size_sek = "Position size must be at least 100 SEK";
+    if (formData.initial_capital_sek < 1000) newErrors.initial_capital_sek = "Kapital måste vara minst 1 000 SEK";
+    if (formData.stop_loss_percent < 0.1 || formData.stop_loss_percent > 100) newErrors.stop_loss_percent = "Måste vara mellan 0.1% och 100%";
+    if (formData.take_profit_percent < 0.1 || formData.take_profit_percent > 100) newErrors.take_profit_percent = "Måste vara mellan 0.1% och 100%";
+    if (formData.max_position_size_percent < 0.1 || formData.max_position_size_percent > 100) newErrors.max_position_size_percent = "Måste vara mellan 0.1% och 100%";
+    if (formData.position_size_sek < 100) newErrors.position_size_sek = "Positionsstorlek måste vara minst 100 SEK";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -118,8 +119,9 @@ const Settings = () => {
   if (isLoading) {
     return (
       <MainLayout>
-        <div className="space-y-6 max-w-3xl animate-pulse">
+        <div className="space-y-6 max-w-4xl animate-pulse">
           <div className="h-8 w-48 bg-muted rounded" />
+          <div className="h-10 w-full bg-muted rounded" />
           <div className="glass-card rounded-2xl p-6 h-64 bg-muted/50" />
         </div>
       </MainLayout>
@@ -128,93 +130,124 @@ const Settings = () => {
 
   return (
     <MainLayout>
-      <div className="space-y-6 max-w-3xl">
+      <div className="space-y-6 max-w-4xl">
+        {/* Header */}
         <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Settings</h1>
-            <p className="text-sm text-muted-foreground">Configure your trading preferences</p>
+          <div className="flex items-center gap-3">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center">
+              <SettingsIcon className="h-5 w-5 text-primary" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Inställningar</h1>
+              <p className="text-sm text-muted-foreground">Konfigurera dina handelsinställningar</p>
+            </div>
           </div>
           <div className="flex items-center gap-3">
             {saveSuccess && (
               <span className="flex items-center gap-1 text-sm font-medium text-primary animate-fade-in">
-                <Check className="h-4 w-4" /> Saved
+                <Check className="h-4 w-4" /> Sparat
               </span>
             )}
             {isDirty && (
               <Button onClick={handleSave} disabled={isSaving}>
-                {isSaving ? "Saving..." : "Save Changes"}
+                {isSaving ? "Sparar..." : "Spara ändringar"}
               </Button>
             )}
           </div>
         </div>
 
-        <TradingModeCard
-          paperTradingEnabled={formData.paper_trading_enabled}
-          paperBalance={formData.paper_balance}
-          paperStartingBalance={formData.paper_starting_balance}
-          onPaperTradingChange={(v) => handleChange("paper_trading_enabled", v)}
-          onPaperBalanceChange={(v) => handleChange("paper_balance", v)}
-          onResetBalance={() => handleChange("paper_balance", formData.paper_starting_balance)}
-        />
+        {/* Tab-based Settings */}
+        <Tabs defaultValue="handel" className="w-full">
+          <TabsList className="grid w-full grid-cols-5 h-12">
+            <TabsTrigger value="handel" className="text-sm">Handel</TabsTrigger>
+            <TabsTrigger value="avanza" className="text-sm">Avanza</TabsTrigger>
+            <TabsTrigger value="notiser" className="text-sm">Notiser</TabsTrigger>
+            <TabsTrigger value="utseende" className="text-sm">Utseende</TabsTrigger>
+            <TabsTrigger value="data" className="text-sm">Data</TabsTrigger>
+          </TabsList>
 
-        <PreferredInstrumentsCard />
+          {/* Handel Tab */}
+          <TabsContent value="handel" className="space-y-6 mt-6">
+            <TradingModeCard
+              paperTradingEnabled={formData.paper_trading_enabled}
+              paperBalance={formData.paper_balance}
+              paperStartingBalance={formData.paper_starting_balance}
+              onPaperTradingChange={(v) => handleChange("paper_trading_enabled", v)}
+              onPaperBalanceChange={(v) => handleChange("paper_balance", v)}
+              onResetBalance={() => handleChange("paper_balance", formData.paper_starting_balance)}
+            />
 
-        <AvanzaSettingsCard
-          accountId={formData.avanza_account_id}
-          instrumentId={formData.avanza_instrument_id}
-          positionSizeSek={formData.position_size_sek}
-          positionSizeError={errors.position_size_sek}
-          onAccountIdChange={(v) => handleChange("avanza_account_id", v)}
-          onInstrumentIdChange={(v) => handleChange("avanza_instrument_id", v)}
-          onPositionSizeChange={(v) => handleChange("position_size_sek", v)}
-        />
+            <CapitalSettingsCard
+              initialCapitalSek={formData.initial_capital_sek}
+              currentCapitalSek={settings?.current_capital_sek ?? null}
+              error={errors.initial_capital_sek}
+              onInitialCapitalChange={(v) => handleChange("initial_capital_sek", v)}
+            />
 
-        <QueueStatusCard />
+            <RiskManagementCard
+              stopLossPercent={formData.stop_loss_percent}
+              takeProfitPercent={formData.take_profit_percent}
+              maxPositionSizePercent={formData.max_position_size_percent}
+              errors={{
+                stopLossPercent: errors.stop_loss_percent,
+                takeProfitPercent: errors.take_profit_percent,
+                maxPositionSizePercent: errors.max_position_size_percent,
+              }}
+              onStopLossChange={(v) => handleChange("stop_loss_percent", v)}
+              onTakeProfitChange={(v) => handleChange("take_profit_percent", v)}
+              onMaxPositionChange={(v) => handleChange("max_position_size_percent", v)}
+            />
 
-        <CapitalSettingsCard
-          initialCapitalSek={formData.initial_capital_sek}
-          currentCapitalSek={settings?.current_capital_sek ?? null}
-          error={errors.initial_capital_sek}
-          onInitialCapitalChange={(v) => handleChange("initial_capital_sek", v)}
-        />
+            <PreferredInstrumentsCard />
+          </TabsContent>
 
-        <RiskManagementCard
-          stopLossPercent={formData.stop_loss_percent}
-          takeProfitPercent={formData.take_profit_percent}
-          maxPositionSizePercent={formData.max_position_size_percent}
-          errors={{
-            stopLossPercent: errors.stop_loss_percent,
-            takeProfitPercent: errors.take_profit_percent,
-            maxPositionSizePercent: errors.max_position_size_percent,
-          }}
-          onStopLossChange={(v) => handleChange("stop_loss_percent", v)}
-          onTakeProfitChange={(v) => handleChange("take_profit_percent", v)}
-          onMaxPositionChange={(v) => handleChange("max_position_size_percent", v)}
-        />
+          {/* Avanza Tab */}
+          <TabsContent value="avanza" className="space-y-6 mt-6">
+            <AvanzaSettingsCard
+              accountId={formData.avanza_account_id}
+              instrumentId={formData.avanza_instrument_id}
+              positionSizeSek={formData.position_size_sek}
+              positionSizeError={errors.position_size_sek}
+              onAccountIdChange={(v) => handleChange("avanza_account_id", v)}
+              onInstrumentIdChange={(v) => handleChange("avanza_instrument_id", v)}
+              onPositionSizeChange={(v) => handleChange("position_size_sek", v)}
+            />
 
-        <AppearanceSettingsCard
-          showLoadingSkeletons={formData.show_loading_skeletons}
-          onShowLoadingSkeletonsChange={(v) => handleChange("show_loading_skeletons", v)}
-        />
+            <QueueStatusCard />
+          </TabsContent>
 
-        <NotificationSettingsCard
-          notifyNewSignals={formData.notify_new_signals}
-          notifyTradeExecuted={formData.notify_trade_executed}
-          notifyDailySummary={formData.notify_daily_summary}
-          notifySoundEnabled={formData.notify_sound_enabled}
-          onNotifyNewSignalsChange={(v) => handleChange("notify_new_signals", v)}
-          onNotifyTradeExecutedChange={(v) => handleChange("notify_trade_executed", v)}
-          onNotifyDailySummaryChange={(v) => handleChange("notify_daily_summary", v)}
-          onNotifySoundEnabledChange={(v) => handleChange("notify_sound_enabled", v)}
-        />
+          {/* Notiser Tab */}
+          <TabsContent value="notiser" className="space-y-6 mt-6">
+            <NotificationSettingsCard
+              notifyNewSignals={formData.notify_new_signals}
+              notifyTradeExecuted={formData.notify_trade_executed}
+              notifyDailySummary={formData.notify_daily_summary}
+              notifySoundEnabled={formData.notify_sound_enabled}
+              onNotifyNewSignalsChange={(v) => handleChange("notify_new_signals", v)}
+              onNotifyTradeExecutedChange={(v) => handleChange("notify_trade_executed", v)}
+              onNotifyDailySummaryChange={(v) => handleChange("notify_daily_summary", v)}
+              onNotifySoundEnabledChange={(v) => handleChange("notify_sound_enabled", v)}
+            />
+          </TabsContent>
 
-        <ToolSettingsCard />
+          {/* Utseende Tab */}
+          <TabsContent value="utseende" className="space-y-6 mt-6">
+            <AppearanceSettingsCard
+              showLoadingSkeletons={formData.show_loading_skeletons}
+              onShowLoadingSkeletonsChange={(v) => handleChange("show_loading_skeletons", v)}
+            />
 
-        {/* Data Storage & Export Section */}
-        <div className="grid gap-6 md:grid-cols-2">
-          <StorageManagementCard />
-          <DataExportCard />
-        </div>
+            <ToolSettingsCard />
+          </TabsContent>
+
+          {/* Data Tab */}
+          <TabsContent value="data" className="space-y-6 mt-6">
+            <div className="grid gap-6 md:grid-cols-2">
+              <StorageManagementCard />
+              <DataExportCard />
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
     </MainLayout>
   );
