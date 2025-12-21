@@ -35,6 +35,7 @@ import { cn } from "@/lib/utils";
 
 type Resolution = "minute" | "hour" | "day" | "week" | "month";
 type QuickRange = "today" | "7d" | "30d" | "3m" | "1y" | "5y" | "max";
+type DataSource = "combined" | "minute" | "daily";
 
 interface PricePoint {
   timestamp: string;
@@ -60,6 +61,12 @@ const RESOLUTIONS: { key: Resolution; label: string }[] = [
   { key: "day", label: "Dag" },
   { key: "week", label: "Vecka" },
   { key: "month", label: "Månad" },
+];
+
+const DATA_SOURCES: { key: DataSource; label: string; description: string }[] = [
+  { key: "combined", label: "Kombinerat", description: "Båda källor (auto)" },
+  { key: "minute", label: "Minutdata", description: "2020+ (price_data)" },
+  { key: "daily", label: "Daglig data", description: "1987-2019 (legacy)" },
 ];
 
 function getDateRange(range: QuickRange): { from: Date; to: Date } {
@@ -96,16 +103,32 @@ function getDateRange(range: QuickRange): { from: Date; to: Date } {
   return { from, to };
 }
 
-function usePriceHistory(from: Date, to: Date, resolution: Resolution) {
+function usePriceHistory(from: Date, to: Date, resolution: Resolution, dataSource: DataSource) {
   return useQuery({
-    queryKey: ["price-history", from.toISOString(), to.toISOString(), resolution],
+    queryKey: ["price-history", from.toISOString(), to.toISOString(), resolution, dataSource],
     queryFn: async () => {
       const fromYear = from.getFullYear();
       const toYear = to.getFullYear();
 
-      // Determine which table(s) to query
-      const useLegacy = fromYear < 2020;
-      const usePrimary = toYear >= 2020;
+      // Determine which table(s) to query based on user selection
+      let useLegacy: boolean;
+      let usePrimary: boolean;
+
+      switch (dataSource) {
+        case "minute":
+          useLegacy = false;
+          usePrimary = true;
+          break;
+        case "daily":
+          useLegacy = true;
+          usePrimary = false;
+          break;
+        case "combined":
+        default:
+          useLegacy = fromYear < 2020;
+          usePrimary = toYear >= 2020;
+          break;
+      }
 
       let allData: PricePoint[] = [];
 
@@ -229,6 +252,7 @@ function aggregateData(data: PricePoint[], resolution: Resolution): PricePoint[]
 const PriceHistory = () => {
   const [quickRange, setQuickRange] = useState<QuickRange>("30d");
   const [resolution, setResolution] = useState<Resolution>("day");
+  const [dataSource, setDataSource] = useState<DataSource>("combined");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
 
@@ -242,7 +266,8 @@ const PriceHistory = () => {
   const { data: priceData, isLoading } = usePriceHistory(
     dateRange.from,
     dateRange.to,
-    resolution
+    resolution,
+    dataSource
   );
 
   const statistics = useMemo(() => {
@@ -325,13 +350,19 @@ const PriceHistory = () => {
         <Card className="bg-muted/30">
           <CardContent className="py-3">
             <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <div className="flex items-center gap-1.5">
+              <div className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded",
+                dataSource === "minute" || dataSource === "combined" ? "bg-primary/10 text-primary" : ""
+              )}>
                 <Database className="h-3.5 w-3.5" />
-                <span><strong>Minut:</strong> Brentix databas (2020+)</span>
+                <span><strong>Minutdata:</strong> price_data (2020+)</span>
               </div>
-              <div className="flex items-center gap-1.5">
+              <div className={cn(
+                "flex items-center gap-1.5 px-2 py-1 rounded",
+                dataSource === "daily" || dataSource === "combined" ? "bg-primary/10 text-primary" : ""
+              )}>
                 <Clock className="h-3.5 w-3.5" />
-                <span><strong>Daglig:</strong> Historisk data (1987-2019)</span>
+                <span><strong>Daglig:</strong> price_data_legacy (1987-2019)</span>
               </div>
             </div>
           </CardContent>
@@ -405,6 +436,25 @@ const PriceHistory = () => {
               <SelectContent>
                 {RESOLUTIONS.map(({ key, label }) => (
                   <SelectItem key={key} value={key}>{label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">Källa:</span>
+            <Select value={dataSource} onValueChange={(v) => setDataSource(v as DataSource)}>
+              <SelectTrigger className="w-[150px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {DATA_SOURCES.map(({ key, label, description }) => (
+                  <SelectItem key={key} value={key}>
+                    <div className="flex flex-col">
+                      <span>{label}</span>
+                      <span className="text-xs text-muted-foreground">{description}</span>
+                    </div>
+                  </SelectItem>
                 ))}
               </SelectContent>
             </Select>
