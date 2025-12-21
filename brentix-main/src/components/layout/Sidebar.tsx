@@ -1,5 +1,5 @@
-import { useState, useEffect } from "react";
-import { NavLink } from "react-router-dom";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
@@ -76,6 +76,7 @@ const SIDEBAR_FOOTER = [
 ];
 
 const SIDEBAR_COLLAPSED_KEY = "brentix-sidebar-collapsed";
+const SIDEBAR_SCROLL_KEY = "brentix-sidebar-scroll";
 
 interface SidebarProps {
   onCollapsedChange?: (collapsed: boolean) => void;
@@ -87,10 +88,28 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
     return saved === "true";
   });
 
+  const navRef = useRef<HTMLElement>(null);
+  const location = useLocation();
+
   useEffect(() => {
     localStorage.setItem(SIDEBAR_COLLAPSED_KEY, String(collapsed));
     onCollapsedChange?.(collapsed);
   }, [collapsed, onCollapsedChange]);
+
+  // Restore scroll position after navigation
+  useEffect(() => {
+    const savedScroll = sessionStorage.getItem(SIDEBAR_SCROLL_KEY);
+    if (savedScroll && navRef.current) {
+      navRef.current.scrollTop = parseInt(savedScroll, 10);
+    }
+  }, [location.pathname]);
+
+  // Save scroll position on scroll
+  const handleScroll = useCallback(() => {
+    if (navRef.current) {
+      sessionStorage.setItem(SIDEBAR_SCROLL_KEY, String(navRef.current.scrollTop));
+    }
+  }, []);
 
   const renderNavItem = (item: { to: string; icon: React.ElementType; label: string }, isEnd?: boolean) => {
     const link = (
@@ -156,7 +175,10 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
           </div>
 
           {/* Navigation Sections */}
-          <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
+          <nav
+            ref={navRef}
+            onScroll={handleScroll}
+            className="flex-1 space-y-1 p-3 overflow-y-auto">
             {SIDEBAR_SECTIONS.map((section, sectionIndex) => (
               <div key={section.title || sectionIndex} className="mb-4">
                 {/* Section Title */}
