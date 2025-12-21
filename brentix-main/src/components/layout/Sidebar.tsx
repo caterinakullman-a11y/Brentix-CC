@@ -50,7 +50,7 @@ const SIDEBAR_SECTIONS = [
   {
     title: "PRISANALYS",
     items: [
-      { to: "/prisanalys", icon: Activity, label: "Dashboard" },
+      { to: "/prisanalys", icon: Activity, label: "Prisanalys" },
       { to: "/prisanalys/historik", icon: Database, label: "Historik" },
       { to: "/prisanalys/statistik", icon: BarChart2, label: "Statistik" },
       { to: "/prisanalys/regler", icon: Zap, label: "Regler" },
