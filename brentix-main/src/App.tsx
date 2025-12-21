@@ -50,7 +50,6 @@ const Rules = lazy(() => import("./pages/Rules"));
 const Pairs = lazy(() => import("./pages/Pairs"));
 const Safety = lazy(() => import("./pages/Safety"));
 const PaperHistory = lazy(() => import("./pages/PaperHistory"));
-const PriceHistory = lazy(() => import("./pages/PriceHistory"));
 const BacktestHistory = lazy(() => import("./pages/BacktestHistory"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -189,14 +188,6 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <PaperHistory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/price-history"
-            element={
-              <ProtectedRoute>
-                <PriceHistory />
               </ProtectedRoute>
             }
           />
