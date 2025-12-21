@@ -111,11 +111,11 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
     }
   }, []);
 
-  const renderNavItem = (item: { to: string; icon: React.ElementType; label: string }, isEnd?: boolean) => {
+  const renderNavItem = (item: { to: string; icon: React.ElementType; label: string }) => {
     const link = (
       <NavLink
         to={item.to}
-        end={isEnd}
+        end
         className={({ isActive }) =>
           cn(
             "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-all duration-200",
@@ -189,7 +189,7 @@ export function Sidebar({ onCollapsedChange }: SidebarProps) {
                 )}
                 
                 {/* Section Items */}
-                {section.items.map((item) => renderNavItem(item, item.to === "/"))}
+                {section.items.map((item) => renderNavItem(item))}
               </div>
             ))}
 
