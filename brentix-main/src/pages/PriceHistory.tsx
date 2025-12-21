@@ -115,14 +115,14 @@ function usePriceHistory(from: Date, to: Date, resolution: Resolution) {
 
         const { data: legacyData, error: legacyError } = await supabase
           .from("price_data_legacy")
-          .select("timestamp, close, open, high, low")
-          .gte("timestamp", from.toISOString().split("T")[0])
-          .lte("timestamp", legacyEnd.toISOString().split("T")[0])
-          .order("timestamp", { ascending: true });
+          .select("date, close, open, high, low")
+          .gte("date", from.toISOString().split("T")[0])
+          .lte("date", legacyEnd.toISOString().split("T")[0])
+          .order("date", { ascending: true });
 
         if (!legacyError && legacyData) {
           allData = legacyData.map(d => ({
-            timestamp: d.timestamp,
+            timestamp: d.date, // Map date to timestamp for consistent interface
             close: Number(d.close),
             open: d.open ? Number(d.open) : undefined,
             high: d.high ? Number(d.high) : undefined,

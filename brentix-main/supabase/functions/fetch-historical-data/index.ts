@@ -32,31 +32,47 @@ Deno.serve(async (req) => {
     // DCOILBRENTEU = Brent Crude Oil Prices: Europe (Daily)
     const seriesId = "DCOILBRENTEU";
     const startDate = "1987-05-20"; // Data starts from this date
-    const endDate = new Date().toISOString().split("T")[0];
+    // End date is 2019-12-31 for legacy data (before minute data begins in 2020)
+    const endDate = "2019-12-31";
 
     console.log(`Fetching FRED data for ${seriesId} from ${startDate} to ${endDate}...`);
 
-    // Check what we already have
-    const { data: existingData } = await supabase
-      .from("historical_prices")
+    // Check what we already have in price_data_legacy
+    const { data: existingData, error: checkError } = await supabase
+      .from("price_data_legacy")
       .select("date")
       .order("date", { ascending: false })
       .limit(1);
 
+    if (checkError) {
+      console.error("Error checking existing data:", checkError);
+    }
+
     const lastDate = existingData?.[0]?.date;
-    const fetchStartDate = lastDate 
+    const fetchStartDate = lastDate
       ? new Date(new Date(lastDate).getTime() + 86400000).toISOString().split("T")[0]
       : startDate;
 
-    if (fetchStartDate >= endDate) {
-      console.log("Historical data is already up to date");
+    // If we already have data up to end of 2019, we're done
+    if (fetchStartDate > endDate) {
+      console.log("Legacy historical data is already complete (1987-2019)");
+
+      // Get total count
+      const { count } = await supabase
+        .from("price_data_legacy")
+        .select("*", { count: "exact", head: true });
+
       return new Response(
-        JSON.stringify({ message: "Data is already up to date", lastDate }),
+        JSON.stringify({
+          message: "Legacy data is complete (1987-2019)",
+          lastDate,
+          totalRecords: count
+        }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Fetching new data from ${fetchStartDate}...`);
+    console.log(`Fetching new data from ${fetchStartDate} to ${endDate}...`);
 
     const fredUrl = `https://api.stlouisfed.org/fred/series/observations?series_id=${seriesId}&api_key=${FRED_API_KEY}&file_type=json&observation_start=${fetchStartDate}&observation_end=${endDate}`;
 
@@ -82,20 +98,20 @@ Deno.serve(async (req) => {
 
     console.log(`${validObservations.length} valid observations after filtering`);
 
-    // Insert in batches of 500
+    // Insert in batches of 500 to price_data_legacy
     const batchSize = 500;
     let insertedCount = 0;
 
     for (let i = 0; i < validObservations.length; i += batchSize) {
       const batch = validObservations.slice(i, i + batchSize).map((obs) => ({
         date: obs.date,
-        price: parseFloat(obs.value),
-        source: "FRED",
-        series_id: seriesId,
+        close: parseFloat(obs.value),
+        source: "fred",
+        data_quality: "verified",
       }));
 
       const { error } = await supabase
-        .from("historical_prices")
+        .from("price_data_legacy")
         .upsert(batch, { onConflict: "date" });
 
       if (error) {
@@ -107,12 +123,12 @@ Deno.serve(async (req) => {
       console.log(`Inserted batch ${Math.floor(i / batchSize) + 1}: ${batch.length} records`);
     }
 
-    // Get total count
+    // Get total count in price_data_legacy
     const { count } = await supabase
-      .from("historical_prices")
+      .from("price_data_legacy")
       .select("*", { count: "exact", head: true });
 
-    console.log(`Total records in database: ${count}`);
+    console.log(`Total records in price_data_legacy: ${count}`);
 
     return new Response(
       JSON.stringify({
@@ -123,6 +139,8 @@ Deno.serve(async (req) => {
           start: validObservations[0]?.date,
           end: validObservations[validObservations.length - 1]?.date,
         },
+        table: "price_data_legacy",
+        note: "Legacy daily data for 1987-2019. Minute data (2020+) uses price_data table.",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
