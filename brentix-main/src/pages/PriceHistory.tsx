@@ -103,24 +103,81 @@ function usePriceHistory(from: Date, to: Date, resolution: Resolution) {
       // Ensure we don't query before 2020
       const queryFrom = new Date(Math.max(from.getTime(), new Date("2020-01-01").getTime()));
 
-      // For minute/hour resolution, sample the data to avoid too many points
-      let query = supabase
+      // Calculate the time range in days
+      const daysDiff = Math.ceil((to.getTime() - queryFrom.getTime()) / (1000 * 60 * 60 * 24));
+
+      // Target ~500 data points for chart display
+      const targetPoints = 500;
+
+      // For longer periods, we need to sample data smartly
+      // Strategy: fetch multiple chunks from different time periods
+      if (daysDiff > 30 && resolution !== "minute") {
+        // Divide period into chunks, fetch first record of each chunk
+        const chunkCount = Math.min(targetPoints, daysDiff);
+        const chunkDuration = (to.getTime() - queryFrom.getTime()) / chunkCount;
+
+        const allData: PricePoint[] = [];
+
+        // Fetch in batches of 20 parallel requests
+        const batchSize = 20;
+        for (let batch = 0; batch < Math.ceil(chunkCount / batchSize); batch++) {
+          const promises: Promise<PricePoint | null>[] = [];
+
+          for (let i = batch * batchSize; i < Math.min((batch + 1) * batchSize, chunkCount); i++) {
+            const chunkStart = new Date(queryFrom.getTime() + i * chunkDuration);
+            const chunkEnd = new Date(queryFrom.getTime() + (i + 1) * chunkDuration);
+
+            promises.push(
+              supabase
+                .from("price_data")
+                .select("timestamp, close, open, high, low")
+                .gte("timestamp", chunkStart.toISOString())
+                .lt("timestamp", chunkEnd.toISOString())
+                .order("timestamp", { ascending: true })
+                .limit(1)
+                .then(({ data }) => data?.[0] ? {
+                  timestamp: data[0].timestamp,
+                  close: Number(data[0].close),
+                  open: data[0].open ? Number(data[0].open) : undefined,
+                  high: data[0].high ? Number(data[0].high) : undefined,
+                  low: data[0].low ? Number(data[0].low) : undefined,
+                } : null)
+            );
+          }
+
+          const results = await Promise.all(promises);
+          results.forEach(d => {
+            if (d) allData.push(d);
+          });
+        }
+
+        // Sort by timestamp
+        allData.sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+        // Aggregate if needed
+        if (resolution !== "minute" && allData.length > 0) {
+          return aggregateData(allData, resolution);
+        }
+        return allData;
+      }
+
+      // For short periods or minute resolution, use simple query with appropriate limits
+      let limit: number;
+      if (resolution === "minute") {
+        limit = Math.min(2000, daysDiff * 1440);
+      } else if (resolution === "hour") {
+        limit = Math.min(5000, daysDiff * 24 * 60); // Up to 5000 minute-points
+      } else {
+        limit = Math.min(10000, daysDiff * 1440); // Up to 10000 minute-points
+      }
+
+      const { data, error } = await supabase
         .from("price_data")
         .select("timestamp, close, open, high, low")
         .gte("timestamp", queryFrom.toISOString())
         .lte("timestamp", to.toISOString())
-        .order("timestamp", { ascending: true });
-
-      // Limit points based on resolution
-      if (resolution === "minute") {
-        query = query.limit(1440); // Max 1 day of minute data
-      } else if (resolution === "hour") {
-        query = query.limit(720); // Max 30 days of hourly data
-      } else {
-        query = query.limit(5000);
-      }
-
-      const { data, error } = await query;
+        .order("timestamp", { ascending: true })
+        .limit(limit);
 
       if (error) {
         console.error("Error fetching price data:", error);
