@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { subMonths, subYears, startOfYear } from "date-fns";
 
@@ -98,20 +98,6 @@ export function useHistoricalPrices(preset: DateRangePreset) {
   };
 }
 
-export function useImportHistoricalData() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: async () => {
-      const { data, error } = await supabase.functions.invoke("fetch-historical-data");
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["historical-prices"] });
-    },
-  });
-}
 
 export function useHistoricalDataCount() {
   return useQuery({

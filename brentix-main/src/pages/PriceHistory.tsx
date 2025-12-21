@@ -26,7 +26,6 @@ import {
   TrendingUp,
   TrendingDown,
   Database,
-  Clock,
   BarChart3
 } from "lucide-react";
 import { format, subDays, subMonths, subYears } from "date-fns";
@@ -35,7 +34,6 @@ import { cn } from "@/lib/utils";
 
 type Resolution = "minute" | "hour" | "day" | "week" | "month";
 type QuickRange = "today" | "7d" | "30d" | "3m" | "1y" | "5y" | "max";
-type DataSource = "combined" | "minute" | "daily";
 
 interface PricePoint {
   timestamp: string;
@@ -63,11 +61,6 @@ const RESOLUTIONS: { key: Resolution; label: string }[] = [
   { key: "month", label: "Månad" },
 ];
 
-const DATA_SOURCES: { key: DataSource; label: string; description: string }[] = [
-  { key: "combined", label: "Kombinerat", description: "Båda källor (auto)" },
-  { key: "minute", label: "Minutdata", description: "2020+ (price_data)" },
-  { key: "daily", label: "Daglig data", description: "1987-2019 (legacy)" },
-];
 
 function getDateRange(range: QuickRange): { from: Date; to: Date } {
   const to = new Date();
@@ -94,7 +87,7 @@ function getDateRange(range: QuickRange): { from: Date; to: Date } {
       from = subYears(to, 5);
       break;
     case "max":
-      from = new Date("1987-01-01");
+      from = new Date("2020-01-01"); // Only minute data from 2020+
       break;
     default:
       from = subDays(to, 30);
@@ -103,98 +96,51 @@ function getDateRange(range: QuickRange): { from: Date; to: Date } {
   return { from, to };
 }
 
-function usePriceHistory(from: Date, to: Date, resolution: Resolution, dataSource: DataSource) {
+function usePriceHistory(from: Date, to: Date, resolution: Resolution) {
   return useQuery({
-    queryKey: ["price-history", from.toISOString(), to.toISOString(), resolution, dataSource],
+    queryKey: ["price-history", from.toISOString(), to.toISOString(), resolution],
     queryFn: async () => {
-      const fromYear = from.getFullYear();
-      const toYear = to.getFullYear();
+      // Ensure we don't query before 2020
+      const queryFrom = new Date(Math.max(from.getTime(), new Date("2020-01-01").getTime()));
 
-      // Determine which table(s) to query based on user selection
-      let useLegacy: boolean;
-      let usePrimary: boolean;
+      // For minute/hour resolution, sample the data to avoid too many points
+      let query = supabase
+        .from("price_data")
+        .select("timestamp, close, open, high, low")
+        .gte("timestamp", queryFrom.toISOString())
+        .lte("timestamp", to.toISOString())
+        .order("timestamp", { ascending: true });
 
-      switch (dataSource) {
-        case "minute":
-          useLegacy = false;
-          usePrimary = true;
-          break;
-        case "daily":
-          useLegacy = true;
-          usePrimary = false;
-          break;
-        case "combined":
-        default:
-          useLegacy = fromYear < 2020;
-          usePrimary = toYear >= 2020;
-          break;
+      // Limit points based on resolution
+      if (resolution === "minute") {
+        query = query.limit(1440); // Max 1 day of minute data
+      } else if (resolution === "hour") {
+        query = query.limit(720); // Max 30 days of hourly data
+      } else {
+        query = query.limit(5000);
       }
 
-      let allData: PricePoint[] = [];
+      const { data, error } = await query;
 
-      // Query legacy data (1987-2019) if needed
-      if (useLegacy) {
-        const legacyEnd = new Date(Math.min(to.getTime(), new Date("2019-12-31").getTime()));
-
-        const { data: legacyData, error: legacyError } = await supabase
-          .from("price_data_legacy")
-          .select("date, close, open, high, low")
-          .gte("date", from.toISOString().split("T")[0])
-          .lte("date", legacyEnd.toISOString().split("T")[0])
-          .order("date", { ascending: true });
-
-        if (!legacyError && legacyData) {
-          allData = legacyData.map(d => ({
-            timestamp: d.date, // Map date to timestamp for consistent interface
-            close: Number(d.close),
-            open: d.open ? Number(d.open) : undefined,
-            high: d.high ? Number(d.high) : undefined,
-            low: d.low ? Number(d.low) : undefined,
-          }));
-        }
+      if (error) {
+        console.error("Error fetching price data:", error);
+        return [];
       }
 
-      // Query primary data (2020+) if needed
-      if (usePrimary) {
-        const primaryStart = new Date(Math.max(from.getTime(), new Date("2020-01-01").getTime()));
-
-        // For minute/hour resolution, sample the data to avoid too many points
-        let query = supabase
-          .from("price_data")
-          .select("timestamp, close, open, high, low")
-          .gte("timestamp", primaryStart.toISOString())
-          .lte("timestamp", to.toISOString())
-          .order("timestamp", { ascending: true });
-
-        // Limit points based on resolution
-        if (resolution === "minute") {
-          query = query.limit(1440); // Max 1 day of minute data
-        } else if (resolution === "hour") {
-          query = query.limit(720); // Max 30 days of hourly data
-        } else {
-          query = query.limit(5000);
-        }
-
-        const { data: primaryData, error: primaryError } = await query;
-
-        if (!primaryError && primaryData) {
-          const mapped = primaryData.map(d => ({
-            timestamp: d.timestamp,
-            close: Number(d.close),
-            open: d.open ? Number(d.open) : undefined,
-            high: d.high ? Number(d.high) : undefined,
-            low: d.low ? Number(d.low) : undefined,
-          }));
-          allData = [...allData, ...mapped];
-        }
-      }
+      let result: PricePoint[] = data.map(d => ({
+        timestamp: d.timestamp,
+        close: Number(d.close),
+        open: d.open ? Number(d.open) : undefined,
+        high: d.high ? Number(d.high) : undefined,
+        low: d.low ? Number(d.low) : undefined,
+      }));
 
       // Aggregate data based on resolution if needed
-      if (resolution !== "minute" && allData.length > 0) {
-        allData = aggregateData(allData, resolution);
+      if (resolution !== "minute" && result.length > 0) {
+        result = aggregateData(result, resolution);
       }
 
-      return allData;
+      return result;
     },
     staleTime: 60000 * 5, // 5 minutes
   });
@@ -252,7 +198,6 @@ function aggregateData(data: PricePoint[], resolution: Resolution): PricePoint[]
 const PriceHistory = () => {
   const [quickRange, setQuickRange] = useState<QuickRange>("30d");
   const [resolution, setResolution] = useState<Resolution>("day");
-  const [dataSource, setDataSource] = useState<DataSource>("combined");
   const [customFrom, setCustomFrom] = useState<Date | undefined>();
   const [customTo, setCustomTo] = useState<Date | undefined>();
 
@@ -266,8 +211,7 @@ const PriceHistory = () => {
   const { data: priceData, isLoading } = usePriceHistory(
     dateRange.from,
     dateRange.to,
-    resolution,
-    dataSource
+    resolution
   );
 
   const statistics = useMemo(() => {
@@ -346,24 +290,12 @@ const PriceHistory = () => {
           </Button>
         </div>
 
-        {/* Data Sources Info */}
+        {/* Data Source Info */}
         <Card className="bg-muted/30">
           <CardContent className="py-3">
-            <div className="flex flex-wrap gap-4 text-xs text-muted-foreground">
-              <div className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded",
-                dataSource === "minute" || dataSource === "combined" ? "bg-primary/10 text-primary" : ""
-              )}>
-                <Database className="h-3.5 w-3.5" />
-                <span><strong>Minutdata:</strong> price_data (2020+)</span>
-              </div>
-              <div className={cn(
-                "flex items-center gap-1.5 px-2 py-1 rounded",
-                dataSource === "daily" || dataSource === "combined" ? "bg-primary/10 text-primary" : ""
-              )}>
-                <Clock className="h-3.5 w-3.5" />
-                <span><strong>Daglig:</strong> price_data_legacy (1987-2019)</span>
-              </div>
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+              <Database className="h-3.5 w-3.5" />
+              <span><strong>Datakälla:</strong> Minutdata från 2020 och framåt</span>
             </div>
           </CardContent>
         </Card>
@@ -441,24 +373,6 @@ const PriceHistory = () => {
             </Select>
           </div>
 
-          <div className="flex items-center gap-2">
-            <span className="text-sm text-muted-foreground">Källa:</span>
-            <Select value={dataSource} onValueChange={(v) => setDataSource(v as DataSource)}>
-              <SelectTrigger className="w-[150px]">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {DATA_SOURCES.map(({ key, label, description }) => (
-                  <SelectItem key={key} value={key}>
-                    <div className="flex flex-col">
-                      <span>{label}</span>
-                      <span className="text-xs text-muted-foreground">{description}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
         </div>
 
         {/* Chart */}

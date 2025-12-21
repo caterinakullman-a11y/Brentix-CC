@@ -5,18 +5,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  useHistoricalPrices, 
-  useImportHistoricalData, 
+import {
+  useHistoricalPrices,
   useHistoricalDataCount,
-  type DateRangePreset 
+  type DateRangePreset
 } from "@/hooks/useHistoricalPrices";
 import { usePatternOccurrences, useDetectPatterns } from "@/hooks/usePatterns";
 import { HistoricalPriceChart } from "@/components/history/HistoricalPriceChart";
 import { PriceStatisticsCard } from "@/components/history/PriceStatisticsCard";
 import { PatternList } from "@/components/history/PatternList";
 import { PatternDefinitionsList } from "@/components/history/PatternDefinitionsList";
-import { Download, RefreshCw, Database, TrendingUp, Sparkles, Activity } from "lucide-react";
+import { RefreshCw, Database, TrendingUp, Sparkles, Activity } from "lucide-react";
 import { toast } from "sonner";
 import { subYears, format } from "date-fns";
 
@@ -36,7 +35,6 @@ export default function HistoricalData() {
   
   const { prices, statistics, isLoading, error } = useHistoricalPrices(dateRange);
   const { data: totalCount, isLoading: countLoading } = useHistoricalDataCount();
-  const importMutation = useImportHistoricalData();
   const detectMutation = useDetectPatterns();
 
   // Get date range for pattern query
@@ -56,19 +54,6 @@ export default function HistoricalData() {
     endDate,
     selectedPatterns.length > 0 ? selectedPatterns : undefined
   );
-
-  const handleImport = async () => {
-    try {
-      const result = await importMutation.mutateAsync();
-      if (result.insertedCount > 0) {
-        toast.success(`Imported ${result.insertedCount} price records`);
-      } else {
-        toast.info(result.message || "Data is already up to date");
-      }
-    } catch (err) {
-      toast.error("Failed to import data: " + (err as Error).message);
-    }
-  };
 
   const handleDetectPatterns = async () => {
     try {
@@ -91,7 +76,7 @@ export default function HistoricalData() {
     <>
       <Helmet>
         <title>Historical Data | Brentix</title>
-        <meta name="description" content="37 years of Brent crude oil price history with pattern recognition" />
+        <meta name="description" content="Brent crude oil price history with pattern recognition" />
       </Helmet>
       <MainLayout>
         <div className="space-y-6">
@@ -112,19 +97,6 @@ export default function HistoricalData() {
                   <span>{totalCount?.toLocaleString() ?? 0} records</span>
                 )}
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleImport}
-                disabled={importMutation.isPending}
-              >
-                {importMutation.isPending ? (
-                  <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <Download className="h-4 w-4 mr-2" />
-                )}
-                {totalCount === 0 ? "Import" : "Update"}
-              </Button>
               <Button
                 variant="default"
                 size="sm"
@@ -196,8 +168,8 @@ export default function HistoricalData() {
                     <div className="h-[400px] flex flex-col items-center justify-center text-muted-foreground gap-4">
                       <Database className="h-12 w-12 opacity-50" />
                       <div className="text-center">
-                        <p className="font-medium">No historical data yet</p>
-                        <p className="text-sm">Click "Import" to fetch 37 years of price history</p>
+                        <p className="font-medium">Ingen prisdata tillgänglig</p>
+                        <p className="text-sm">Prisdata laddas från price_data tabellen</p>
                       </div>
                     </div>
                   ) : (

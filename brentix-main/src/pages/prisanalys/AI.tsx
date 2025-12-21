@@ -355,8 +355,8 @@ const PrisanalysAI = () => {
                   <div>
                     <h4 className="font-medium">Maskininlärningsanalys</h4>
                     <p className="text-sm text-muted-foreground">
-                      Använder ML-modeller tränade på 30 års FRED-data plus
-                      minutdata. Identifierar komplexa mönster och ger
+                      Använder ML-modeller tränade på minutdata från 2020.
+                      Identifierar komplexa mönster och ger
                       sannolikhetsbaserade rekommendationer.
                     </p>
                   </div>
@@ -402,7 +402,7 @@ const PrisanalysAI = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Träningsdata</p>
-                  <p className="font-mono text-sm">1987-2024 (30 år)</p>
+                  <p className="font-mono text-sm">2020-2025 (minutdata)</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Noggrannhet</p>
