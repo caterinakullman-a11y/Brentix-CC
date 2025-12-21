@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -100,7 +99,7 @@ export default function Safety() {
   const isLoading = loadingStop || loadingTriggers;
 
   return (
-    <MainLayout>
+    <>
       <Helmet>
         <title>Säkerhet & Order - BRENTIX</title>
         <meta name="description" content="Hantera säkerhetsinställningar och villkorliga ordrar" />
@@ -337,6 +336,6 @@ export default function Safety() {
           </>
         )}
       </div>
-    </MainLayout>
+    </>
   );
 }

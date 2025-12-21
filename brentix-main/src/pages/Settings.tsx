@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Check, Settings as SettingsIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -118,19 +117,16 @@ const Settings = () => {
 
   if (isLoading) {
     return (
-      <MainLayout>
-        <div className="space-y-6 max-w-4xl animate-pulse">
-          <div className="h-8 w-48 bg-muted rounded" />
-          <div className="h-10 w-full bg-muted rounded" />
-          <div className="glass-card rounded-2xl p-6 h-64 bg-muted/50" />
-        </div>
-      </MainLayout>
+      <div className="p-4 md:p-6 space-y-6 max-w-4xl animate-pulse">
+        <div className="h-8 w-48 bg-muted rounded" />
+        <div className="h-10 w-full bg-muted rounded" />
+        <div className="glass-card rounded-2xl p-6 h-64 bg-muted/50" />
+      </div>
     );
   }
 
   return (
-    <MainLayout>
-      <div className="space-y-6 max-w-4xl">
+    <div className="p-4 md:p-6 space-y-6 max-w-4xl">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
@@ -248,8 +244,7 @@ const Settings = () => {
             </div>
           </TabsContent>
         </Tabs>
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

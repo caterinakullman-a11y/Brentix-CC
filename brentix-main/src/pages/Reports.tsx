@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/layout/MainLayout";
 import { FileText, Download, Calendar, Loader2, AlertCircle, TrendingUp, TrendingDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -80,8 +79,7 @@ Netto P/L: ${report.net_profit_sek?.toFixed(2) || "0"} SEK
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Rapporter</h1>
@@ -176,8 +174,7 @@ Netto P/L: ${report.net_profit_sek?.toFixed(2) || "0"} SEK
             })}
           </div>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

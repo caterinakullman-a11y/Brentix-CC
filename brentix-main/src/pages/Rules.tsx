@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -77,7 +76,7 @@ export default function Rules() {
   const pendingSuggestions = suggestions?.filter(s => !s.dismissed) || [];
 
   return (
-    <MainLayout>
+    <>
       <Helmet>
         <title>Regler - BRENTIX</title>
         <meta name="description" content="Skapa och hantera dina handelsregler" />
@@ -225,6 +224,6 @@ export default function Rules() {
           editRecycleXRule={editingRecycleXRule}
         />
       </div>
-    </MainLayout>
+    </>
   );
 }

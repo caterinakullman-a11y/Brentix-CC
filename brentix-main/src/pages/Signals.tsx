@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -41,8 +40,7 @@ const Signals = () => {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Signaler</h1>
@@ -159,8 +157,7 @@ const Signals = () => {
             </div>
           )}
         </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

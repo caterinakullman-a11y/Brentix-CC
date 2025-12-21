@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Helmet } from "react-helmet-async";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -78,8 +77,7 @@ export default function HistoricalData() {
         <title>Historical Data | Brentix</title>
         <meta name="description" content="Brent crude oil price history with pattern recognition" />
       </Helmet>
-      <MainLayout>
-        <div className="space-y-6">
+      <div className="p-4 md:p-6 space-y-6">
           {/* Header */}
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
             <div>
@@ -231,8 +229,7 @@ export default function HistoricalData() {
               </div>
             </TabsContent>
           </Tabs>
-        </div>
-      </MainLayout>
+      </div>
     </>
   );
 }

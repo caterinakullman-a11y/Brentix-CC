@@ -1,5 +1,4 @@
 import { useState, useCallback } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { DualSignalCard } from "@/components/dashboard/DualSignalCard";
 import { TechnicalIndicatorsCompact } from "@/components/dashboard/TechnicalIndicatorsCompact";
@@ -228,7 +227,7 @@ const Index = () => {
   );
 
   return (
-    <MainLayout onToggleLayoutMode={toggleEditMode} isLayoutMode={isEditMode}>
+    <div className="p-4 md:p-6">
       {hasCriticalError ? (
         <DashboardError onRetry={handleRetry} />
       ) : showSkeleton ? (
@@ -292,7 +291,7 @@ const Index = () => {
             )}
         </div>
       )}
-    </MainLayout>
+    </div>
   );
 };
 

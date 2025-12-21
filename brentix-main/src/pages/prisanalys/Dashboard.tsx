@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -104,8 +103,7 @@ const PrisanalysDashboard = () => {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -415,8 +413,7 @@ const PrisanalysDashboard = () => {
             </a>
           </Button>
         </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

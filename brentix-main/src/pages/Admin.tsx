@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -256,11 +255,9 @@ export default function Admin() {
 
   if (loading || isLoading) {
     return (
-      <MainLayout>
-        <div className="flex items-center justify-center h-64">
-          <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-        </div>
-      </MainLayout>
+      <div className="flex items-center justify-center h-64">
+        <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </div>
     );
   }
 
@@ -281,8 +278,7 @@ export default function Admin() {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Adminpanel</h1>
@@ -562,47 +558,46 @@ export default function Admin() {
           </table>
         </div>
         </div>
-      </div>
 
-      {/* Reject Modal */}
-      {rejectModal.open && (
-        <div
-          className="fixed inset-0 bg-background/90 flex items-center justify-center z-50"
-          onClick={() => setRejectModal({ open: false, userId: null })}
-        >
+        {/* Reject Modal */}
+        {rejectModal.open && (
           <div
-            className="bg-card border border-border w-full max-w-sm p-6 rounded-lg"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 bg-background/90 flex items-center justify-center z-50"
+            onClick={() => setRejectModal({ open: false, userId: null })}
           >
-            <h2 className="text-lg font-semibold text-foreground mb-4">Reject User</h2>
-            <p className="text-sm text-muted-foreground mb-4">
-              Optionally provide a reason for rejection:
-            </p>
-            <Input
-              placeholder="Reason (optional)"
-              value={rejectionReason}
-              onChange={(e) => setRejectionReason(e.target.value)}
-              className="mb-4"
-            />
-            <div className="flex gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setRejectModal({ open: false, userId: null })}
-                className="flex-1"
-              >
-                Cancel
-              </Button>
-              <Button
-                variant="destructive"
-                onClick={handleReject}
-                className="flex-1"
-              >
-                Reject User
-              </Button>
+            <div
+              className="bg-card border border-border w-full max-w-sm p-6 rounded-lg"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="text-lg font-semibold text-foreground mb-4">Reject User</h2>
+              <p className="text-sm text-muted-foreground mb-4">
+                Optionally provide a reason for rejection:
+              </p>
+              <Input
+                placeholder="Reason (optional)"
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                className="mb-4"
+              />
+              <div className="flex gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setRejectModal({ open: false, userId: null })}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="destructive"
+                  onClick={handleReject}
+                  className="flex-1"
+                >
+                  Reject User
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
-      )}
-    </MainLayout>
+        )}
+    </div>
   );
 }

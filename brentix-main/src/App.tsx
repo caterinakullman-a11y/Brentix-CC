@@ -7,13 +7,14 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import { HelmetProvider } from "react-helmet-async";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
+import { AuthenticatedLayout } from "@/components/layout/AuthenticatedLayout";
 import ErrorBoundary from "@/components/ErrorBoundary";
 import { NetworkStatusBanner } from "@/components/NetworkStatusBanner";
 import { HelpChat } from "@/components/help";
 import { useAuth } from "@/hooks/useAuth";
 import { Skeleton } from "@/components/ui/skeleton";
 
-// Page loading fallback
+// Page loading fallback for non-authenticated pages
 const PageLoader = () => (
   <div className="flex items-center justify-center min-h-screen">
     <div className="space-y-4 w-full max-w-md p-8">
@@ -73,184 +74,47 @@ const App = () => (
           <Toaster />
           <Sonner />
         <BrowserRouter>
-        <Suspense fallback={<PageLoader />}>
         <Routes>
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/reset-password" element={<ResetPassword />} />
-          <Route path="/pending" element={<PendingApproval />} />
-          <Route
-            path="/admin"
-            element={
-              <ProtectedRoute requireAdmin>
-                <Admin />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/"
-            element={
-              <ProtectedRoute>
-                <Index />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/signals"
-            element={
-              <ProtectedRoute>
-                <Signals />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/trades"
-            element={
-              <ProtectedRoute>
-                <Trades />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/analysis"
-            element={
-              <ProtectedRoute>
-                <Analysis />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/history"
-            element={
-              <ProtectedRoute>
-                <History />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/historical-data"
-            element={
-              <ProtectedRoute>
-                <HistoricalData />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/performance"
-            element={
-              <ProtectedRoute>
-                <Performance />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/reports"
-            element={
-              <ProtectedRoute>
-                <Reports />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <Settings />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rules"
-            element={
-              <ProtectedRoute>
-                <Rules />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/pairs"
-            element={
-              <ProtectedRoute>
-                <Pairs />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/safety"
-            element={
-              <ProtectedRoute>
-                <Safety />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/paper-history"
-            element={
-              <ProtectedRoute>
-                <PaperHistory />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/backtest-history"
-            element={
-              <ProtectedRoute>
-                <BacktestHistory />
-              </ProtectedRoute>
-            }
-          />
-          {/* Prisanalys Routes */}
-          <Route
-            path="/prisanalys"
-            element={
-              <ProtectedRoute>
-                <PrisanalysDashboard />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prisanalys/historik"
-            element={
-              <ProtectedRoute>
-                <PrisanalysHistorik />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prisanalys/statistik"
-            element={
-              <ProtectedRoute>
-                <PrisanalysStatistik />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prisanalys/regler"
-            element={
-              <ProtectedRoute>
-                <PrisanalysRegler />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prisanalys/backtest"
-            element={
-              <ProtectedRoute>
-                <PrisanalysBacktest />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/prisanalys/ai"
-            element={
-              <ProtectedRoute>
-                <PrisanalysAI />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="*" element={<NotFound />} />
+          {/* Public routes - no layout */}
+          <Route path="/login" element={<Suspense fallback={<PageLoader />}><Login /></Suspense>} />
+          <Route path="/register" element={<Suspense fallback={<PageLoader />}><Register /></Suspense>} />
+          <Route path="/reset-password" element={<Suspense fallback={<PageLoader />}><ResetPassword /></Suspense>} />
+          <Route path="/pending" element={<Suspense fallback={<PageLoader />}><PendingApproval /></Suspense>} />
+
+          {/* Protected routes with persistent layout */}
+          <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+            <Route path="/" element={<Index />} />
+            <Route path="/signals" element={<Signals />} />
+            <Route path="/trades" element={<Trades />} />
+            <Route path="/analysis" element={<Analysis />} />
+            <Route path="/history" element={<History />} />
+            <Route path="/historical-data" element={<HistoricalData />} />
+            <Route path="/performance" element={<Performance />} />
+            <Route path="/reports" element={<Reports />} />
+            <Route path="/settings" element={<Settings />} />
+            <Route path="/rules" element={<Rules />} />
+            <Route path="/pairs" element={<Pairs />} />
+            <Route path="/safety" element={<Safety />} />
+            <Route path="/paper-history" element={<PaperHistory />} />
+            <Route path="/backtest-history" element={<BacktestHistory />} />
+
+            {/* Prisanalys Routes */}
+            <Route path="/prisanalys" element={<PrisanalysDashboard />} />
+            <Route path="/prisanalys/historik" element={<PrisanalysHistorik />} />
+            <Route path="/prisanalys/statistik" element={<PrisanalysStatistik />} />
+            <Route path="/prisanalys/regler" element={<PrisanalysRegler />} />
+            <Route path="/prisanalys/backtest" element={<PrisanalysBacktest />} />
+            <Route path="/prisanalys/ai" element={<PrisanalysAI />} />
+          </Route>
+
+          {/* Admin route with persistent layout */}
+          <Route element={<ProtectedRoute requireAdmin><AuthenticatedLayout /></ProtectedRoute>}>
+            <Route path="/admin" element={<Admin />} />
+          </Route>
+
+          {/* 404 */}
+          <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
         </Routes>
-        </Suspense>
         </BrowserRouter>
         <AuthenticatedHelpChat />
         </TooltipProvider>

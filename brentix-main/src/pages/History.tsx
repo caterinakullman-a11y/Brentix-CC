@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { supabase } from "@/integrations/supabase/client";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
@@ -109,8 +108,7 @@ const History = () => {
   };
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Trade History</h1>
           <p className="text-sm text-muted-foreground">
@@ -296,8 +294,7 @@ const History = () => {
             </button>
           </div>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

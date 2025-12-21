@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -300,8 +299,7 @@ const PrisanalysAI = () => {
   const appliedSuggestions = suggestions.filter((s) => s.status === "applied");
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
@@ -579,8 +577,7 @@ const PrisanalysAI = () => {
             </CardContent>
           </Card>
         )}
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

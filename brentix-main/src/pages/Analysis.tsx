@@ -1,4 +1,3 @@
-import { MainLayout } from "@/components/layout/MainLayout";
 import { PriceChart } from "@/components/dashboard/PriceChart";
 import { TechnicalIndicators } from "@/components/dashboard/TechnicalIndicators";
 import { useTechnicalIndicators } from "@/hooks/useTechnicalIndicators";
@@ -26,8 +25,7 @@ const Analysis = () => {
   const bias = rsi < 45 ? "hausse" : rsi > 55 ? "baisse" : "neutral";
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Teknisk Analys</h1>
           <p className="text-sm text-muted-foreground">
@@ -78,8 +76,7 @@ const Analysis = () => {
             )}
           </div>
         </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 

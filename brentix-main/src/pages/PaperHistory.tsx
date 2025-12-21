@@ -1,6 +1,5 @@
 import { useState, useMemo } from "react";
 import { Helmet } from "react-helmet-async";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -124,7 +123,7 @@ export default function PaperHistory() {
   }, [trades]);
 
   return (
-    <MainLayout>
+    <>
       <Helmet>
         <title>Paper Trade Historik | Brentix</title>
       </Helmet>
@@ -342,10 +341,10 @@ export default function PaperHistory() {
       </div>
 
       {/* AI Analysis Modal */}
-      <PaperTradeAnalysis 
-        open={showAnalysis} 
-        onOpenChange={setShowAnalysis} 
+      <PaperTradeAnalysis
+        open={showAnalysis}
+        onOpenChange={setShowAnalysis}
       />
-    </MainLayout>
+    </>
   );
 }

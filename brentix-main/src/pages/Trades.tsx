@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { MainLayout } from "@/components/layout/MainLayout";
 import { cn } from "@/lib/utils";
 import { TrendingUp, TrendingDown, Activity, Target, Loader2, AlertCircle } from "lucide-react";
 import { usePaperTrades } from "@/hooks/usePaperTrades";
@@ -105,8 +104,7 @@ const Trades = () => {
   }, [allTrades]);
 
   return (
-    <MainLayout>
-      <div className="space-y-6">
+    <div className="p-4 md:p-6 space-y-6">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Affärer</h1>
           <p className="text-sm text-muted-foreground">Handelslogg och positionshantering</p>
@@ -286,8 +284,7 @@ const Trades = () => {
             </div>
           )}
         </div>
-      </div>
-    </MainLayout>
+    </div>
   );
 };
 
